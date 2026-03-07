@@ -79,6 +79,37 @@ class MCPG_Cascade_Engine {
      */
     public static function process_step( $order_id ) {
         $order      = wc_get_order( $order_id );
+
+        // Clear object cache to get fresh order data (webhook may have updated it)
+        if ( function_exists( 'wp_cache_delete' ) ) {
+            wp_cache_delete( 'order-' . $order_id, 'orders' );
+            wp_cache_delete( $order_id, 'posts' );
+        }
+        $order = wc_get_order( $order_id );
+
+        // If order was finalized by a webhook while we were waiting, return success
+        if ( $order->has_status( array( 'processing', 'completed' ) ) ) {
+            MCPG_Card_Store::destroy( $order_id );
+            return array(
+                'status'  => 'approved',
+                'message' => 'Payment confirmed',
+                'step'    => (int) $order->get_meta( '_mcpg_cascade_step' ),
+                'total'   => count( $order->get_meta( '_mcpg_cascade_processors' ) ?: array() ),
+            );
+        }
+
+        // If we're awaiting a webhook, don't re-attempt — just report pending
+        $awaiting_webhook = $order->get_meta( '_mcpg_cascade_awaiting_webhook' );
+        if ( $awaiting_webhook === 'yes' ) {
+            $processors = $order->get_meta( '_mcpg_cascade_processors' ) ?: array();
+            return array(
+                'status'  => 'pending',
+                'message' => 'Awaiting payment confirmation',
+                'step'    => (int) $order->get_meta( '_mcpg_cascade_step' ),
+                'total'   => count( $processors ),
+            );
+        }
+
         $processors = $order->get_meta( '_mcpg_cascade_processors' );
         $step       = (int) $order->get_meta( '_mcpg_cascade_step' );
         $results    = $order->get_meta( '_mcpg_cascade_results' ) ?: array();
@@ -88,7 +119,7 @@ class MCPG_Cascade_Engine {
                 'status'  => 'exhausted',
                 'message' => 'All payment routes have been attempted.',
                 'step'    => $step,
-                'total'   => count( $processors ),
+                'total'   => is_array( $processors ) ? count( $processors ) : 0,
             );
         }
 
@@ -137,6 +168,11 @@ class MCPG_Cascade_Engine {
             $order->update_meta_data( '_mcpg_cascade_awaiting_3ds', 'yes' );
             $order->save();
             self::logger()->log( 'CASCADE PAUSED — awaiting 3DS for ' . $processor_id );
+        } elseif ( $result['status'] === 'pending' ) {
+            // Awaiting webhook confirmation — do NOT advance step
+            $order->update_meta_data( '_mcpg_cascade_awaiting_webhook', 'yes' );
+            $order->save();
+            self::logger()->log( 'CASCADE PAUSED — awaiting webhook for ' . $processor_id );
         } else {
             // Failed — advance to next step
             $next_step = $step + 1;
@@ -298,9 +334,9 @@ class MCPG_Cascade_Engine {
         $amount = number_format( (float) $order->get_total(), 2, '.', '' );
 
         // Build EP2D expiry (MM and YYYY)
-        $exp_month = str_pad( $card_data['exp_month'], 2, '0', STR_PAD_LEFT );
-        $exp_year  = $card_data['exp_year'];
-        if ( strlen( $exp_year ) === 2 ) $exp_year = '20' . $exp_year;
+        $exp_month = str_pad( (string) $card_data['exp_month'], 2, '0', STR_PAD_LEFT );
+        $exp_year  = (string) $card_data['exp_year'];
+        if ( strlen( $exp_year ) <= 2 ) $exp_year = '20' . str_pad( $exp_year, 2, '0', STR_PAD_LEFT );
 
         $data = array(
             'account_id'              => $account_id,

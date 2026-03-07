@@ -5,6 +5,7 @@
     var totalSteps  = parseInt(config.total_steps, 10);
     var currentStep = 0;
     var isFinished  = false;
+    var isProcessing = false; // Mutex to prevent double AJAX calls
 
     // SVG icons
     var ICON_CHECK = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
@@ -32,6 +33,9 @@
             return;
         }
 
+        if (isProcessing) return; // Prevent double fire
+        isProcessing = true;
+
         currentStep = step;
         setStepActive(step);
         updateProgress(step, totalSteps);
@@ -48,6 +52,8 @@
             },
             timeout: 120000, // 2 min per attempt
             success: function (response) {
+                isProcessing = false;
+
                 if (!response || !response.data) {
                     setStepFailed(step, 'Connection error');
                     nextStep(step);
@@ -94,6 +100,7 @@
                 }
             },
             error: function () {
+                isProcessing = false;
                 setStepFailed(step, 'Connection error');
                 nextStep(step);
             }

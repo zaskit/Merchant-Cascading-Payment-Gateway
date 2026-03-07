@@ -104,6 +104,7 @@ class MCPG_Webhook_Handler {
         switch ( $status ) {
             case 'approved':
                 $order->update_meta_data( '_mcpg_cascade_active', 'no' );
+                $order->update_meta_data( '_mcpg_cascade_awaiting_webhook', 'no' );
                 $order->update_meta_data( '_mcpg_transaction_id', $tx_id );
                 $order->update_meta_data( '_mcpg_payment_processor', 'vp3d' );
                 $order->save();
@@ -318,6 +319,7 @@ class MCPG_Webhook_Handler {
 
         if ( $parsed['is_success'] ) {
             $order->update_meta_data( '_mcpg_cascade_active', 'no' );
+            $order->update_meta_data( '_mcpg_cascade_awaiting_webhook', 'no' );
             $order->update_meta_data( '_mcpg_transaction_id', $parsed['transaction_id'] );
             $order->update_meta_data( '_mcpg_payment_processor', 'ep2d' );
             $order->save();
