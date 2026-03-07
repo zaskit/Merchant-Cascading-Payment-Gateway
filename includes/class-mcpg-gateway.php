@@ -277,15 +277,15 @@ class MCPG_Gateway extends WC_Payment_Gateway {
             'vp3d_webhook_url' => array(
                 'title'       => 'Webhook URL',
                 'type'        => 'text',
-                'description' => 'Copy to your vSafe dashboard: <code>' . home_url( '/wc-api/mcpg_vsafe_webhook' ) . '</code>',
-                'default'     => home_url( '/wc-api/mcpg_vsafe_webhook' ),
+                'description' => 'Copy to your vSafe dashboard: <code>' . home_url( '/wc-api/vsafe_webhook' ) . '</code>',
+                'default'     => home_url( '/wc-api/vsafe_webhook' ),
                 'custom_attributes' => array( 'readonly' => 'readonly' ),
             ),
             'vp3d_redirect_url' => array(
                 'title'       => '3DS Return URL',
                 'type'        => 'text',
-                'description' => 'URL customer returns to after 3DS: <code>' . home_url( '/wc-api/mcpg_vsafe_3ds_return' ) . '</code>',
-                'default'     => home_url( '/wc-api/mcpg_vsafe_3ds_return' ),
+                'description' => 'URL customer returns to after 3DS: <code>' . home_url( '/wc-api/vsafe_3ds_return' ) . '</code>',
+                'default'     => home_url( '/wc-api/vsafe_3ds_return' ),
                 'custom_attributes' => array( 'readonly' => 'readonly' ),
             ),
             'vp3d_descriptor' => array(
