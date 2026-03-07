@@ -90,14 +90,6 @@ class MCPG_Gateway extends WC_Payment_Gateway {
                 'label'   => 'Enable logging (WooCommerce > Status > Logs > mcpg-*)',
                 'default' => 'yes',
             ),
-            'descriptor' => array(
-                'title'       => 'Statement Descriptor',
-                'type'        => 'text',
-                'description' => 'Text shown on customer bank statements and in order confirmation emails.',
-                'default'     => '',
-                'desc_tip'    => true,
-            ),
-
             // ── Cascade ──
             'cascade_section' => array(
                 'title'       => '<span style="font-size:16px;font-weight:700;">Cascade Configuration</span>',
@@ -138,6 +130,42 @@ class MCPG_Gateway extends WC_Payment_Gateway {
                 'options' => array( 'sandbox' => 'Sandbox', 'live' => 'Live' ),
                 'default' => 'sandbox',
             ),
+            'vp2d_descriptor' => array(
+                'title'       => 'Statement Descriptor',
+                'type'        => 'text',
+                'description' => 'Text shown on bank statement when paid via VP2D.',
+                'default'     => '',
+                'desc_tip'    => true,
+            ),
+            'vp2d_test_card_section' => array(
+                'title'       => '<em style="font-size:13px;font-weight:600;color:#6b7280;">VP2D Sandbox Test Card</em>',
+                'type'        => 'title',
+                'description' => 'When environment is Sandbox, these card details are sent to the API instead of the customer\'s card.',
+            ),
+            'vp2d_test_card_number' => array(
+                'title'   => 'Test Card Number',
+                'type'    => 'text',
+                'default' => '',
+                'description' => 'Leave empty to use customer\'s card even in sandbox.',
+                'desc_tip' => true,
+            ),
+            'vp2d_test_card_expiry' => array(
+                'title'       => 'Test Card Expiry (MM/YY)',
+                'type'        => 'text',
+                'default'     => '',
+                'css'         => 'width:100px;',
+            ),
+            'vp2d_test_card_cvv' => array(
+                'title'   => 'Test Card CVV',
+                'type'    => 'text',
+                'default' => '',
+                'css'     => 'width:80px;',
+            ),
+            'vp2d_test_card_name' => array(
+                'title'   => 'Test Cardholder Name',
+                'type'    => 'text',
+                'default' => '',
+            ),
 
             // ── E-Processor 2D ──
             'ep2d_section' => array(
@@ -174,6 +202,42 @@ class MCPG_Gateway extends WC_Payment_Gateway {
                 'title'   => 'Transaction Prefix',
                 'type'    => 'text',
                 'default' => 'MCPG-',
+            ),
+            'ep2d_descriptor' => array(
+                'title'       => 'Statement Descriptor',
+                'type'        => 'text',
+                'description' => 'Text shown on bank statement when paid via EP2D.',
+                'default'     => '',
+                'desc_tip'    => true,
+            ),
+            'ep2d_test_card_section' => array(
+                'title'       => '<em style="font-size:13px;font-weight:600;color:#6b7280;">EP2D Sandbox Test Card</em>',
+                'type'        => 'title',
+                'description' => 'When in test mode, these card details are sent to the API instead of the customer\'s card.',
+            ),
+            'ep2d_test_card_number' => array(
+                'title'   => 'Test Card Number',
+                'type'    => 'text',
+                'default' => '',
+                'description' => 'Leave empty to use customer\'s card even in sandbox.',
+                'desc_tip' => true,
+            ),
+            'ep2d_test_card_expiry' => array(
+                'title'       => 'Test Card Expiry (MM/YY)',
+                'type'        => 'text',
+                'default'     => '',
+                'css'         => 'width:100px;',
+            ),
+            'ep2d_test_card_cvv' => array(
+                'title'   => 'Test Card CVV',
+                'type'    => 'text',
+                'default' => '',
+                'css'     => 'width:80px;',
+            ),
+            'ep2d_test_card_name' => array(
+                'title'   => 'Test Cardholder Name',
+                'type'    => 'text',
+                'default' => '',
             ),
 
             // ── V-Processor 3D ──
@@ -223,6 +287,42 @@ class MCPG_Gateway extends WC_Payment_Gateway {
                 'description' => 'URL customer returns to after 3DS: <code>' . home_url( '/wc-api/mcpg_vsafe_3ds_return' ) . '</code>',
                 'default'     => home_url( '/wc-api/mcpg_vsafe_3ds_return' ),
                 'custom_attributes' => array( 'readonly' => 'readonly' ),
+            ),
+            'vp3d_descriptor' => array(
+                'title'       => 'Statement Descriptor',
+                'type'        => 'text',
+                'description' => 'Text shown on bank statement when paid via VP3D.',
+                'default'     => '',
+                'desc_tip'    => true,
+            ),
+            'vp3d_test_card_section' => array(
+                'title'       => '<em style="font-size:13px;font-weight:600;color:#6b7280;">VP3D Sandbox Test Card</em>',
+                'type'        => 'title',
+                'description' => 'When in sandbox mode, these card details are sent to the API instead of the customer\'s card.',
+            ),
+            'vp3d_test_card_number' => array(
+                'title'   => 'Test Card Number',
+                'type'    => 'text',
+                'default' => '',
+                'description' => 'Leave empty to use customer\'s card even in sandbox.',
+                'desc_tip' => true,
+            ),
+            'vp3d_test_card_expiry' => array(
+                'title'       => 'Test Card Expiry (MM/YY)',
+                'type'        => 'text',
+                'default'     => '',
+                'css'         => 'width:100px;',
+            ),
+            'vp3d_test_card_cvv' => array(
+                'title'   => 'Test Card CVV',
+                'type'    => 'text',
+                'default' => '',
+                'css'     => 'width:80px;',
+            ),
+            'vp3d_test_card_name' => array(
+                'title'   => 'Test Cardholder Name',
+                'type'    => 'text',
+                'default' => '',
             ),
 
             // ── Fee ──
@@ -668,13 +768,25 @@ class MCPG_Gateway extends WC_Payment_Gateway {
     }
 
     /* ═══════════════════ DESCRIPTOR ═══════════════════ */
+    /**
+     * Get the descriptor for the processor that handled this order.
+     */
+    private function get_order_descriptor( $order ) {
+        $processor = $order->get_meta( '_mcpg_payment_processor' );
+        if ( $processor ) {
+            $descriptor = $this->get_option( $processor . '_descriptor', '' );
+            if ( ! empty( $descriptor ) ) return $descriptor;
+        }
+        return '';
+    }
+
     public function show_descriptor_thankyou( $order_id ) {
         // Don't show descriptor during cascade processing
         if ( isset( $_GET['mcpg_cascade'] ) ) return;
 
         $order = wc_get_order( $order_id );
         if ( ! $order || $order->get_payment_method() !== $this->id ) return;
-        $descriptor = $this->get_option( 'descriptor', '' );
+        $descriptor = $this->get_order_descriptor( $order );
         if ( empty( $descriptor ) ) return;
         $msg = sprintf(
             'Your payment has been processed securely. The charge will appear on your statement as "%s". If you have any questions, please contact our support team.',
@@ -687,7 +799,7 @@ class MCPG_Gateway extends WC_Payment_Gateway {
 
     public function show_descriptor_email( $order, $sent_to_admin, $plain_text, $email ) {
         if ( $order->get_payment_method() !== $this->id ) return;
-        $descriptor = $this->get_option( 'descriptor', '' );
+        $descriptor = $this->get_order_descriptor( $order );
         if ( empty( $descriptor ) ) return;
         $msg = sprintf(
             'Your payment has been processed securely. The charge will appear on your statement as "%s". If you have any questions, please contact our support team.',

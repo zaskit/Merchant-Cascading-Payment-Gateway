@@ -203,11 +203,59 @@ class MCPG_Cascade_Engine {
     }
 
     /**
+     * Swap card data with test card if processor is in sandbox and test card is configured.
+     */
+    private static function maybe_swap_test_card( $processor_id, $card_data, $settings ) {
+        // Determine if processor is in sandbox mode
+        $is_sandbox = false;
+        switch ( $processor_id ) {
+            case 'vp2d':
+                $is_sandbox = ( $settings['vp2d_environment'] ?? 'sandbox' ) === 'sandbox';
+                break;
+            case 'ep2d':
+                // EP2D doesn't have a separate sandbox toggle — use test card presence as indicator
+                $is_sandbox = ! empty( $settings['ep2d_test_card_number'] );
+                break;
+            case 'vp3d':
+                $is_sandbox = ( $settings['vp3d_testmode'] ?? 'yes' ) === 'yes';
+                break;
+        }
+
+        if ( ! $is_sandbox ) return $card_data;
+
+        $test_number = $settings[ $processor_id . '_test_card_number' ] ?? '';
+        if ( empty( $test_number ) ) return $card_data;
+
+        // Parse test expiry (MM/YY or MM/YYYY)
+        $test_expiry = $settings[ $processor_id . '_test_card_expiry' ] ?? '';
+        if ( ! empty( $test_expiry ) && strpos( $test_expiry, '/' ) !== false ) {
+            $parts = explode( '/', $test_expiry );
+            $card_data['exp_month'] = trim( $parts[0] );
+            $exp_y = trim( $parts[1] );
+            $card_data['exp_year'] = strlen( $exp_y ) <= 2 ? '20' . $exp_y : $exp_y;
+        }
+
+        $card_data['number'] = preg_replace( '/\s+/', '', $test_number );
+
+        $test_cvv = $settings[ $processor_id . '_test_card_cvv' ] ?? '';
+        if ( ! empty( $test_cvv ) ) $card_data['cvv'] = $test_cvv;
+
+        $test_name = $settings[ $processor_id . '_test_card_name' ] ?? '';
+        if ( ! empty( $test_name ) ) $card_data['name'] = $test_name;
+
+        self::logger()->log( 'TEST CARD SWAP for ' . $processor_id . ': using test card ****' . substr( $card_data['number'], -4 ) );
+
+        return $card_data;
+    }
+
+    /**
      * Attempt payment with a specific processor.
      *
      * @return array ['status' => approved|failed|3ds_redirect|error, 'message' => '...', ...]
      */
     private static function attempt( $processor_id, $order, $card_data, $settings ) {
+        // Swap in test card data if in sandbox mode
+        $card_data = self::maybe_swap_test_card( $processor_id, $card_data, $settings );
         switch ( $processor_id ) {
             case 'vp2d':
                 return self::attempt_vp2d( $order, $card_data, $settings );
