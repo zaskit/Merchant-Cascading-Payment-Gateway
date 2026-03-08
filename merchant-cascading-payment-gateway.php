@@ -91,8 +91,8 @@ add_action( 'init', function () {
 });
 
 /* ── VP3D webhook endpoints ── */
-add_action( 'woocommerce_api_mcpg_vsafe_webhook', array( 'MCPG_Webhook_Handler', 'handle_vp3d_webhook' ) );
-add_action( 'woocommerce_api_mcpg_vsafe_3ds_return', array( 'MCPG_Webhook_Handler', 'handle_vp3d_3ds_return' ) );
+add_action( 'woocommerce_api_vsafe_webhook', array( 'MCPG_Webhook_Handler', 'handle_vp3d_webhook' ) );
+add_action( 'woocommerce_api_vsafe_3ds_return', array( 'MCPG_Webhook_Handler', 'handle_vp3d_3ds_return' ) );
 
 /* ── Activation / Deactivation ── */
 register_activation_hook( __FILE__, function () {

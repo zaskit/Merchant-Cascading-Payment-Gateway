@@ -258,8 +258,8 @@ class MCPG_Gateway extends WC_Payment_Gateway {
             'vp3d_heading' => array(
                 'title'       => '<span class="mcpg-section-title">V-Processor 3D (VP3D)</span>',
                 'type'        => 'title',
-                'description' => '<strong>Webhook URL</strong> (set in vSafe dashboard): <code>' . esc_html( home_url( '/wc-api/mcpg_vsafe_webhook' ) ) . '</code><br>'
-                    . '<strong>3DS Return URL</strong> (set in vSafe dashboard): <code>' . esc_html( home_url( '/wc-api/mcpg_vsafe_3ds_return' ) ) . '</code>',
+                'description' => '<strong>Webhook URL</strong> (set in vSafe dashboard): <code>' . esc_html( home_url( '/wc-api/vsafe_webhook' ) ) . '</code><br>'
+                    . '<strong>3DS Return URL</strong> (set in vSafe dashboard): <code>' . esc_html( home_url( '/wc-api/vsafe_3ds_return' ) ) . '</code>',
             ),
             'vp3d_enabled' => array(
                 'title'   => 'Enable',
