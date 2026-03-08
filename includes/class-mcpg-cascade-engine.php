@@ -361,11 +361,11 @@ class MCPG_Cascade_Engine {
 
         if ( $result['result']['status'] === 'approved' ) {
             $tx_id = $result['transactionId'] ?? '';
-            $order->payment_complete( $tx_id );
             $order->update_meta_data( '_mcpg_transaction_id', $tx_id );
             $order->update_meta_data( '_mcpg_payment_processor', 'vp2d' );
-            $order->add_order_note( 'Cascade: V-Processor 2D payment approved. TX: ' . $tx_id );
             $order->save();
+            $order->payment_complete( $tx_id );
+            $order->add_order_note( 'Cascade: V-Processor 2D payment approved. TX: ' . $tx_id );
 
             return array(
                 'status'         => 'approved',
@@ -483,6 +483,23 @@ class MCPG_Cascade_Engine {
             $parsed = MCPG_EProcessor_API::parse_transaction_status( $result );
 
             if ( $parsed['is_success'] ) {
+                // Refresh order — EP callback may have arrived during our HTTP call
+                clean_post_cache( $order_id );
+                if ( function_exists( 'wp_cache_delete' ) ) {
+                    wp_cache_delete( 'order-' . $order_id, 'orders' );
+                    wp_cache_delete( $order_id, 'posts' );
+                }
+                $fresh_order = wc_get_order( $order_id );
+                if ( $fresh_order && $fresh_order->has_status( array( 'processing', 'completed' ) ) ) {
+                    // Callback already completed the order
+                    self::logger()->log( 'EP2D: order already completed by callback — skipping payment_complete' );
+                    return array(
+                        'status'         => 'approved',
+                        'message'        => 'Payment approved',
+                        'transaction_id' => $parsed['transaction_id'],
+                    );
+                }
+
                 $order->update_meta_data( '_mcpg_transaction_id', $parsed['transaction_id'] );
                 $order->update_meta_data( '_mcpg_payment_processor', 'ep2d' );
                 $order->save();
