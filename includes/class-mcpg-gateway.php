@@ -45,8 +45,7 @@ class MCPG_Gateway extends WC_Payment_Gateway {
         add_action( 'woocommerce_thankyou_' . $this->id, array( $this, 'show_descriptor_thankyou' ), 5 );
         add_action( 'woocommerce_email_after_order_table', array( $this, 'show_descriptor_email' ), 10, 4 );
 
-        // Percentage fee
-        add_action( 'woocommerce_cart_calculate_fees', array( $this, 'add_percentage_fee' ) );
+        // Checkout refresh for fee recalculation when payment method changes
         add_action( 'wp_footer', array( $this, 'checkout_refresh_script' ) );
 
         // Admin scripts (jQuery UI Sortable for cascade order)
@@ -1094,50 +1093,6 @@ class MCPG_Gateway extends WC_Payment_Gateway {
             echo wp_kses_post( $msg );
             echo '</div>';
         }
-    }
-
-    /* ═══════════════════ PERCENTAGE FEE ═══════════════════ */
-    public function add_percentage_fee( $cart ) {
-        if ( is_admin() && ! defined( 'DOING_AJAX' ) ) return;
-        if ( ! $cart ) return;
-        $pct = floatval( $this->get_option( 'percentage_on_top', '' ) );
-        if ( $pct <= 0 ) return;
-
-        if ( ! $this->is_gateway_chosen() ) return;
-
-        $total = $cart->get_cart_contents_total() + $cart->get_shipping_total();
-        $fee   = round( $total * ( $pct / 100 ), 2 );
-        if ( $fee > 0 ) {
-            $label = $this->get_option( 'fee_label', 'Transaction Fee' );
-            $cart->add_fee( sprintf( '%s (%s%%)', $label, $pct ), $fee, true );
-        }
-    }
-
-    /**
-     * Determine if our gateway is the active payment method.
-     * Works for classic checkout, block checkout, and AJAX update_checkout.
-     */
-    private function is_gateway_chosen() {
-        // 1. Check POST data (sent during AJAX update_checkout and Store API)
-        if ( ! empty( $_POST['payment_method'] ) ) {
-            return sanitize_text_field( $_POST['payment_method'] ) === $this->id;
-        }
-
-        // 2. Check session
-        if ( WC()->session ) {
-            $chosen = WC()->session->get( 'chosen_payment_method' );
-            if ( ! empty( $chosen ) ) {
-                return $chosen === $this->id;
-            }
-        }
-
-        // 3. No method chosen yet — apply fee if we're the first available gateway
-        $available = WC()->payment_gateways()->get_available_payment_gateways();
-        if ( ! empty( $available ) ) {
-            return array_key_first( $available ) === $this->id;
-        }
-
-        return false;
     }
 
     public function checkout_refresh_script() {

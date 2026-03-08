@@ -61,7 +61,57 @@ function mcpg_init() {
 
     // Initialize webhook handler
     MCPG_Webhook_Handler::init();
+
+    // Percentage fee — registered here so it fires even before the gateway object is loaded
+    add_action( 'woocommerce_cart_calculate_fees', 'mcpg_add_percentage_fee' );
 }
+
+function mcpg_add_percentage_fee( $cart ) {
+    if ( is_admin() && ! defined( 'DOING_AJAX' ) ) return;
+    if ( ! $cart ) return;
+
+    $settings = get_option( 'woocommerce_mcpg_cascading_settings', array() );
+    if ( ( $settings['enabled'] ?? 'no' ) !== 'yes' ) return;
+
+    $pct = floatval( $settings['percentage_on_top'] ?? '' );
+    if ( $pct <= 0 ) return;
+
+    $gateway_id = 'mcpg_cascading';
+
+    // Determine if our gateway is the active payment method
+    $chosen = '';
+    if ( ! empty( $_POST['payment_method'] ) ) {
+        $chosen = sanitize_text_field( $_POST['payment_method'] );
+    } elseif ( WC()->session ) {
+        $chosen = WC()->session->get( 'chosen_payment_method', '' );
+    }
+
+    if ( ! empty( $chosen ) ) {
+        if ( $chosen !== $gateway_id ) return;
+    } else {
+        // No method chosen yet — apply if we're the first available gateway
+        $available = WC()->payment_gateways()->get_available_payment_gateways();
+        if ( empty( $available ) || array_key_first( $available ) !== $gateway_id ) return;
+    }
+
+    $total = $cart->get_cart_contents_total() + $cart->get_shipping_total();
+    $fee   = round( $total * ( $pct / 100 ), 2 );
+    if ( $fee > 0 ) {
+        $label = $settings['fee_label'] ?? 'Transaction Fee';
+        $cart->add_fee( sprintf( '%s (%s%%)', $label, $pct ), $fee, true );
+    }
+}
+
+/* ── Block Checkout integration ── */
+add_action( 'woocommerce_blocks_loaded', function () {
+    if ( ! class_exists( 'Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType' ) ) return;
+
+    require_once MCPG_PLUGIN_DIR . 'includes/class-mcpg-blocks-integration.php';
+
+    add_action( 'woocommerce_blocks_payment_method_type_registration', function ( $registry ) {
+        $registry->register( new MCPG_Blocks_Integration() );
+    });
+});
 
 /* ── Phone field required (processors need it) ── */
 add_filter( 'woocommerce_billing_fields', function ( $fields ) {
