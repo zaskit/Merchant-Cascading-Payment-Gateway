@@ -295,27 +295,13 @@ class MCPG_Gateway extends WC_Payment_Gateway {
                 'desc_tip'    => true,
             ),
 
-            // VP3D URLs (readonly, for reference)
+            // VP3D URLs (display only — always shows current site URL)
             'vp3d_urls_heading' => array(
                 'title'       => '<span class="mcpg-section-title" style="font-size:13px;">VP3D Webhook & Return URLs</span>',
                 'type'        => 'title',
-                'description' => 'Copy these URLs into your vSafe merchant dashboard.',
-            ),
-            'vp3d_webhook_url' => array(
-                'title'       => 'Webhook URL',
-                'type'        => 'text',
-                'default'     => home_url( '/wc-api/vsafe_webhook' ),
-                'description' => '<code>' . home_url( '/wc-api/vsafe_webhook' ) . '</code>',
-                'custom_attributes' => array( 'readonly' => 'readonly' ),
-                'css' => 'color:#666;background:#f6f7f7;',
-            ),
-            'vp3d_redirect_url' => array(
-                'title'       => '3DS Return URL',
-                'type'        => 'text',
-                'default'     => home_url( '/wc-api/vsafe_3ds_return' ),
-                'description' => '<code>' . home_url( '/wc-api/vsafe_3ds_return' ) . '</code>',
-                'custom_attributes' => array( 'readonly' => 'readonly' ),
-                'css' => 'color:#666;background:#f6f7f7;',
+                'description' => 'Copy these URLs into your vSafe merchant dashboard:<br><br>'
+                    . '<strong>Webhook URL:</strong><br><code>' . esc_html( home_url( '/wc-api/mcpg_vsafe_webhook' ) ) . '</code><br><br>'
+                    . '<strong>3DS Return URL:</strong><br><code>' . esc_html( home_url( '/wc-api/mcpg_vsafe_3ds_return' ) ) . '</code>',
             ),
 
         );
@@ -332,33 +318,24 @@ class MCPG_Gateway extends WC_Payment_Gateway {
                 'testcards_info' => array(
                     'title' => '<span class="mcpg-section-title">Sandbox Test Cards</span>',
                     'type'  => 'title',
-                    'description' => 'When a processor is in <strong>Sandbox</strong> mode and a test card is configured below, the customer\'s real card details are replaced with these test card details before sending to the processor API.<br><br>Leave fields empty to send the customer\'s actual card even in sandbox mode.',
+                    'description' => 'When a processor is in <strong>Sandbox</strong> mode and a test card is configured below, the customer\'s real card details are replaced with these test card details before sending to the processor API. Leave fields empty to send the customer\'s actual card even in sandbox mode.<br><br>'
+                        . 'EP2D test cards: <code>4444333322221111</code> (Accepted), <code>4444333322221210</code> (3DS Accepted), <code>4444333322222101</code> (Refused). Expiry: <code>06/25</code>, CVV: <code>123</code>',
                 ),
-                'vp2d_tc_heading' => array(
-                    'title' => '<span class="mcpg-section-title" style="font-size:14px;">VP2D Test Card</span>',
-                    'type'  => 'title',
-                ),
-                'vp2d_test_card_number' => array( 'title' => 'Card Number', 'type' => 'text', 'default' => '', 'css' => 'width:220px;' ),
-                'vp2d_test_card_expiry' => array( 'title' => 'Expiry (MM/YY)', 'type' => 'text', 'default' => '', 'css' => 'width:100px;' ),
-                'vp2d_test_card_cvv'    => array( 'title' => 'CVV', 'type' => 'text', 'default' => '', 'css' => 'width:80px;' ),
-                'vp2d_test_card_name'   => array( 'title' => 'Cardholder Name', 'type' => 'text', 'default' => '', 'css' => 'width:220px;' ),
-                'ep2d_tc_heading' => array(
-                    'title' => '<span class="mcpg-section-title" style="font-size:14px;">EP2D Test Card</span>',
-                    'type'  => 'title',
-                    'description' => 'Common EuPaymentz test cards: <code>4444333322221111</code> (Accepted), <code>4444333322221210</code> (3DS Accepted), <code>4444333322222101</code> (Refused). Expiry: <code>06/25</code>, CVV: <code>123</code>',
-                ),
-                'ep2d_test_card_number' => array( 'title' => 'Card Number', 'type' => 'text', 'default' => '', 'css' => 'width:220px;' ),
-                'ep2d_test_card_expiry' => array( 'title' => 'Expiry (MM/YY)', 'type' => 'text', 'default' => '', 'css' => 'width:100px;' ),
-                'ep2d_test_card_cvv'    => array( 'title' => 'CVV', 'type' => 'text', 'default' => '', 'css' => 'width:80px;' ),
-                'ep2d_test_card_name'   => array( 'title' => 'Cardholder Name', 'type' => 'text', 'default' => '', 'css' => 'width:220px;' ),
-                'vp3d_tc_heading' => array(
-                    'title' => '<span class="mcpg-section-title" style="font-size:14px;">VP3D Test Card</span>',
-                    'type'  => 'title',
-                ),
-                'vp3d_test_card_number' => array( 'title' => 'Card Number', 'type' => 'text', 'default' => '', 'css' => 'width:220px;' ),
-                'vp3d_test_card_expiry' => array( 'title' => 'Expiry (MM/YY)', 'type' => 'text', 'default' => '', 'css' => 'width:100px;' ),
-                'vp3d_test_card_cvv'    => array( 'title' => 'CVV', 'type' => 'text', 'default' => '', 'css' => 'width:80px;' ),
-                'vp3d_test_card_name'   => array( 'title' => 'Cardholder Name', 'type' => 'text', 'default' => '', 'css' => 'width:220px;' ),
+                // VP2D — use description in the first field as section label (no title break)
+                'vp2d_test_card_number' => array( 'title' => 'VP2D — Card Number', 'type' => 'text', 'default' => '', 'css' => 'width:220px;' ),
+                'vp2d_test_card_expiry' => array( 'title' => 'VP2D — Expiry (MM/YY)', 'type' => 'text', 'default' => '', 'css' => 'width:100px;' ),
+                'vp2d_test_card_cvv'    => array( 'title' => 'VP2D — CVV', 'type' => 'text', 'default' => '', 'css' => 'width:80px;' ),
+                'vp2d_test_card_name'   => array( 'title' => 'VP2D — Name', 'type' => 'text', 'default' => '', 'css' => 'width:220px;' ),
+                // EP2D
+                'ep2d_test_card_number' => array( 'title' => 'EP2D — Card Number', 'type' => 'text', 'default' => '', 'css' => 'width:220px;' ),
+                'ep2d_test_card_expiry' => array( 'title' => 'EP2D — Expiry (MM/YY)', 'type' => 'text', 'default' => '', 'css' => 'width:100px;' ),
+                'ep2d_test_card_cvv'    => array( 'title' => 'EP2D — CVV', 'type' => 'text', 'default' => '', 'css' => 'width:80px;' ),
+                'ep2d_test_card_name'   => array( 'title' => 'EP2D — Name', 'type' => 'text', 'default' => '', 'css' => 'width:220px;' ),
+                // VP3D
+                'vp3d_test_card_number' => array( 'title' => 'VP3D — Card Number', 'type' => 'text', 'default' => '', 'css' => 'width:220px;' ),
+                'vp3d_test_card_expiry' => array( 'title' => 'VP3D — Expiry (MM/YY)', 'type' => 'text', 'default' => '', 'css' => 'width:100px;' ),
+                'vp3d_test_card_cvv'    => array( 'title' => 'VP3D — CVV', 'type' => 'text', 'default' => '', 'css' => 'width:80px;' ),
+                'vp3d_test_card_name'   => array( 'title' => 'VP3D — Name', 'type' => 'text', 'default' => '', 'css' => 'width:220px;' ),
             );
         }
     }
