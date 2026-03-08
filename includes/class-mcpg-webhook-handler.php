@@ -37,7 +37,7 @@ class MCPG_Webhook_Handler {
         }
 
         // Validate signature
-        $signature = $_SERVER['HTTP_SIGNATURE'] ?? '';
+        $signature = sanitize_text_field( $_SERVER['HTTP_SIGNATURE'] ?? '' );
         $expected  = hash( 'sha256', $api_token . $raw_post . $api_token );
 
         if ( ! hash_equals( $expected, $signature ) ) {

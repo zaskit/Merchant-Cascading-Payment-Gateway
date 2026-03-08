@@ -227,6 +227,11 @@ class MCPG_Cascade_Engine {
      * Swap card data with test card if processor is in sandbox and test card is configured.
      */
     private static function maybe_swap_test_card( $processor_id, $card_data, $settings ) {
+        // Test card swap only available when MCPG_ENABLE_TEST_CARDS is defined
+        if ( ! defined( 'MCPG_ENABLE_TEST_CARDS' ) || ! MCPG_ENABLE_TEST_CARDS ) {
+            return $card_data;
+        }
+
         // Determine if processor is in sandbox mode
         $is_sandbox = false;
         switch ( $processor_id ) {

@@ -109,8 +109,8 @@ class MCPG_Gateway extends WC_Payment_Gateway {
             ),
             'cascade_order' => array(
                 'title'       => 'Cascade Order',
-                'type'        => 'text',
-                'description' => 'Comma-separated processor IDs in attempt order.<br>Available: <code>vp2d</code> (V-Processor 2D), <code>ep2d</code> (E-Processor 2D), <code>vp3d</code> (V-Processor 3D)',
+                'type'        => 'cascade_order_sortable',
+                'description' => 'Drag processors to set the order they are attempted. Only enabled processors will be used.',
                 'default'     => 'vp2d,ep2d,vp3d',
             ),
 
@@ -318,120 +318,144 @@ class MCPG_Gateway extends WC_Payment_Gateway {
                 'css' => 'color:#666;background:#f6f7f7;',
             ),
 
-            /* ── TAB: Test Cards ── */
-            'tab_testcards_start' => array(
-                'type' => 'title',
-                'title' => '',
-                'class' => 'mcpg-tab-content mcpg-tab-testcards',
-            ),
-            'testcards_info' => array(
-                'title' => '<span class="mcpg-section-title">Sandbox Test Cards</span>',
-                'type'  => 'title',
-                'description' => 'When a processor is in <strong>Sandbox</strong> mode and a test card is configured below, the customer\'s real card details are replaced with these test card details before sending to the processor API.<br><br>Leave fields empty to send the customer\'s actual card even in sandbox mode.',
-            ),
-
-            // VP2D test card
-            'vp2d_tc_heading' => array(
-                'title' => '<span class="mcpg-section-title" style="font-size:14px;">VP2D Test Card</span>',
-                'type'  => 'title',
-            ),
-            'vp2d_test_card_number' => array(
-                'title'   => 'Card Number',
-                'type'    => 'text',
-                'default' => '',
-                'css'     => 'width:220px;',
-            ),
-            'vp2d_test_card_expiry' => array(
-                'title'       => 'Expiry (MM/YY)',
-                'type'        => 'text',
-                'default'     => '',
-                'css'         => 'width:100px;',
-            ),
-            'vp2d_test_card_cvv' => array(
-                'title'   => 'CVV',
-                'type'    => 'text',
-                'default' => '',
-                'css'     => 'width:80px;',
-            ),
-            'vp2d_test_card_name' => array(
-                'title'   => 'Cardholder Name',
-                'type'    => 'text',
-                'default' => '',
-                'css'     => 'width:220px;',
-            ),
-
-            // EP2D test card
-            'ep2d_tc_heading' => array(
-                'title' => '<span class="mcpg-section-title" style="font-size:14px;">EP2D Test Card</span>',
-                'type'  => 'title',
-                'description' => 'Common EuPaymentz test cards: <code>4444333322221111</code> (Accepted), <code>4444333322221210</code> (3DS Accepted), <code>4444333322222101</code> (Refused). Expiry: <code>06/25</code>, CVV: <code>123</code>',
-            ),
-            'ep2d_test_card_number' => array(
-                'title'   => 'Card Number',
-                'type'    => 'text',
-                'default' => '',
-                'css'     => 'width:220px;',
-            ),
-            'ep2d_test_card_expiry' => array(
-                'title'       => 'Expiry (MM/YY)',
-                'type'        => 'text',
-                'default'     => '',
-                'css'         => 'width:100px;',
-            ),
-            'ep2d_test_card_cvv' => array(
-                'title'   => 'CVV',
-                'type'    => 'text',
-                'default' => '',
-                'css'     => 'width:80px;',
-            ),
-            'ep2d_test_card_name' => array(
-                'title'   => 'Cardholder Name',
-                'type'    => 'text',
-                'default' => '',
-                'css'     => 'width:220px;',
-            ),
-
-            // VP3D test card
-            'vp3d_tc_heading' => array(
-                'title' => '<span class="mcpg-section-title" style="font-size:14px;">VP3D Test Card</span>',
-                'type'  => 'title',
-            ),
-            'vp3d_test_card_number' => array(
-                'title'   => 'Card Number',
-                'type'    => 'text',
-                'default' => '',
-                'css'     => 'width:220px;',
-            ),
-            'vp3d_test_card_expiry' => array(
-                'title'       => 'Expiry (MM/YY)',
-                'type'        => 'text',
-                'default'     => '',
-                'css'         => 'width:100px;',
-            ),
-            'vp3d_test_card_cvv' => array(
-                'title'   => 'CVV',
-                'type'    => 'text',
-                'default' => '',
-                'css'     => 'width:80px;',
-            ),
-            'vp3d_test_card_name' => array(
-                'title'   => 'Cardholder Name',
-                'type'    => 'text',
-                'default' => '',
-                'css'     => 'width:220px;',
-            ),
         );
+
+        // Test Cards tab — only available when MCPG_ENABLE_TEST_CARDS is defined
+        if ( defined( 'MCPG_ENABLE_TEST_CARDS' ) && MCPG_ENABLE_TEST_CARDS ) {
+            $this->form_fields += array(
+                /* ── TAB: Test Cards ── */
+                'tab_testcards_start' => array(
+                    'type' => 'title',
+                    'title' => '',
+                    'class' => 'mcpg-tab-content mcpg-tab-testcards',
+                ),
+                'testcards_info' => array(
+                    'title' => '<span class="mcpg-section-title">Sandbox Test Cards</span>',
+                    'type'  => 'title',
+                    'description' => 'When a processor is in <strong>Sandbox</strong> mode and a test card is configured below, the customer\'s real card details are replaced with these test card details before sending to the processor API.<br><br>Leave fields empty to send the customer\'s actual card even in sandbox mode.',
+                ),
+                'vp2d_tc_heading' => array(
+                    'title' => '<span class="mcpg-section-title" style="font-size:14px;">VP2D Test Card</span>',
+                    'type'  => 'title',
+                ),
+                'vp2d_test_card_number' => array( 'title' => 'Card Number', 'type' => 'text', 'default' => '', 'css' => 'width:220px;' ),
+                'vp2d_test_card_expiry' => array( 'title' => 'Expiry (MM/YY)', 'type' => 'text', 'default' => '', 'css' => 'width:100px;' ),
+                'vp2d_test_card_cvv'    => array( 'title' => 'CVV', 'type' => 'text', 'default' => '', 'css' => 'width:80px;' ),
+                'vp2d_test_card_name'   => array( 'title' => 'Cardholder Name', 'type' => 'text', 'default' => '', 'css' => 'width:220px;' ),
+                'ep2d_tc_heading' => array(
+                    'title' => '<span class="mcpg-section-title" style="font-size:14px;">EP2D Test Card</span>',
+                    'type'  => 'title',
+                    'description' => 'Common EuPaymentz test cards: <code>4444333322221111</code> (Accepted), <code>4444333322221210</code> (3DS Accepted), <code>4444333322222101</code> (Refused). Expiry: <code>06/25</code>, CVV: <code>123</code>',
+                ),
+                'ep2d_test_card_number' => array( 'title' => 'Card Number', 'type' => 'text', 'default' => '', 'css' => 'width:220px;' ),
+                'ep2d_test_card_expiry' => array( 'title' => 'Expiry (MM/YY)', 'type' => 'text', 'default' => '', 'css' => 'width:100px;' ),
+                'ep2d_test_card_cvv'    => array( 'title' => 'CVV', 'type' => 'text', 'default' => '', 'css' => 'width:80px;' ),
+                'ep2d_test_card_name'   => array( 'title' => 'Cardholder Name', 'type' => 'text', 'default' => '', 'css' => 'width:220px;' ),
+                'vp3d_tc_heading' => array(
+                    'title' => '<span class="mcpg-section-title" style="font-size:14px;">VP3D Test Card</span>',
+                    'type'  => 'title',
+                ),
+                'vp3d_test_card_number' => array( 'title' => 'Card Number', 'type' => 'text', 'default' => '', 'css' => 'width:220px;' ),
+                'vp3d_test_card_expiry' => array( 'title' => 'Expiry (MM/YY)', 'type' => 'text', 'default' => '', 'css' => 'width:100px;' ),
+                'vp3d_test_card_cvv'    => array( 'title' => 'CVV', 'type' => 'text', 'default' => '', 'css' => 'width:80px;' ),
+                'vp3d_test_card_name'   => array( 'title' => 'Cardholder Name', 'type' => 'text', 'default' => '', 'css' => 'width:220px;' ),
+            );
+        }
     }
 
     /**
-     * Custom admin options page with tabbed layout.
+     * Custom field type: sortable cascade order.
      */
+    public function generate_cascade_order_sortable_html( $key, $data ) {
+        $field_key = $this->get_field_key( $key );
+        $value     = $this->get_option( $key, 'vp2d,ep2d,vp3d' );
+        $current   = array_map( 'trim', explode( ',', $value ) );
+
+        $all_processors = array(
+            'vp2d' => array( 'name' => 'V-Processor 2D', 'desc' => 'Direct card processing — no 3DS redirect' ),
+            'ep2d' => array( 'name' => 'E-Processor 2D', 'desc' => 'Direct card processing via EuPaymentz' ),
+            'vp3d' => array( 'name' => 'V-Processor 3D', 'desc' => '3D-Secure — customer may verify with bank' ),
+        );
+
+        // Ensure all processors are in the list (append any missing ones)
+        foreach ( array_keys( $all_processors ) as $id ) {
+            if ( ! in_array( $id, $current, true ) ) {
+                $current[] = $id;
+            }
+        }
+        // Remove any invalid entries
+        $current = array_filter( $current, function( $id ) use ( $all_processors ) {
+            return isset( $all_processors[ $id ] );
+        });
+
+        ob_start();
+        ?>
+        <tr valign="top">
+            <th scope="row" class="titledesc">
+                <label><?php echo wp_kses_post( $data['title'] ); ?></label>
+            </th>
+            <td class="forminp">
+                <input type="hidden" name="<?php echo esc_attr( $field_key ); ?>" id="<?php echo esc_attr( $field_key ); ?>" value="<?php echo esc_attr( $value ); ?>" />
+                <ul id="mcpg-cascade-sortable" class="mcpg-sortable-list">
+                    <?php foreach ( $current as $id ) :
+                        $proc    = $all_processors[ $id ];
+                        $enabled = $this->get_option( $id . '_enabled', 'no' ) === 'yes';
+                        $env_key = $id === 'vp3d' ? 'vp3d_testmode' : $id . '_environment';
+                        $env_val = $this->get_option( $env_key, $id === 'vp3d' ? 'yes' : 'sandbox' );
+                        $is_sandbox = $id === 'vp3d' ? ( $env_val === 'yes' ) : ( $env_val === 'sandbox' );
+                    ?>
+                    <li class="mcpg-sortable-item<?php echo $enabled ? '' : ' mcpg-sortable-disabled'; ?>" data-id="<?php echo esc_attr( $id ); ?>">
+                        <span class="mcpg-drag-handle" title="Drag to reorder">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3" r="1.5"/><circle cx="11" cy="3" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="13" r="1.5"/><circle cx="11" cy="13" r="1.5"/></svg>
+                        </span>
+                        <span class="mcpg-sortable-info">
+                            <strong><?php echo esc_html( $proc['name'] ); ?></strong>
+                            <span class="mcpg-sortable-desc"><?php echo esc_html( $proc['desc'] ); ?></span>
+                        </span>
+                        <span class="mcpg-sortable-badges">
+                            <?php if ( $enabled ) : ?>
+                                <span class="mcpg-env-badge <?php echo $is_sandbox ? 'mcpg-env-sandbox' : 'mcpg-env-live'; ?>">
+                                    <?php echo $is_sandbox ? 'Sandbox' : 'Live'; ?>
+                                </span>
+                                <span class="mcpg-env-badge" style="background:#d1fae5;color:#065f46;">Enabled</span>
+                            <?php else : ?>
+                                <span class="mcpg-env-badge" style="background:#f3f4f6;color:#6b7280;">Disabled</span>
+                            <?php endif; ?>
+                        </span>
+                    </li>
+                    <?php endforeach; ?>
+                </ul>
+                <p class="description"><?php echo wp_kses_post( $data['description'] ); ?></p>
+            </td>
+        </tr>
+        <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Validate cascade_order_sortable field — only allow valid processor IDs.
+     */
+    public function validate_cascade_order_sortable_field( $key, $value ) {
+        $valid = array( 'vp2d', 'ep2d', 'vp3d' );
+        $ids   = array_map( 'trim', explode( ',', $value ) );
+        $ids   = array_filter( $ids, function( $id ) use ( $valid ) {
+            return in_array( $id, $valid, true );
+        });
+        // Ensure at least the default order if empty
+        if ( empty( $ids ) ) {
+            $ids = $valid;
+        }
+        return implode( ',', array_unique( $ids ) );
+    }
+
     public function admin_options() {
         $tabs = array(
             'general'    => 'General',
             'processors' => 'Processors',
-            'testcards'  => 'Test Cards',
         );
+        if ( defined( 'MCPG_ENABLE_TEST_CARDS' ) && MCPG_ENABLE_TEST_CARDS ) {
+            $tabs['testcards'] = 'Test Cards';
+        }
         ?>
         <style>
             .mcpg-admin-header {
@@ -471,6 +495,36 @@ class MCPG_Gateway extends WC_Payment_Gateway {
             }
             .mcpg-env-sandbox { background: #fef3c7; color: #92400e; }
             .mcpg-env-live { background: #d1fae5; color: #065f46; }
+            /* Sortable cascade order */
+            .mcpg-sortable-list {
+                list-style: none; margin: 0 0 8px; padding: 0; max-width: 560px;
+            }
+            .mcpg-sortable-item {
+                display: flex; align-items: center; gap: 12px;
+                padding: 14px 16px; margin-bottom: 4px;
+                background: #fff; border: 1px solid #e5e7eb; border-radius: 8px;
+                cursor: grab; transition: box-shadow 0.2s, border-color 0.2s;
+                user-select: none;
+            }
+            .mcpg-sortable-item:active { cursor: grabbing; }
+            .mcpg-sortable-item:hover { border-color: #a5b4fc; box-shadow: 0 2px 8px rgba(79,70,229,0.08); }
+            .mcpg-sortable-item.ui-sortable-helper {
+                box-shadow: 0 4px 16px rgba(0,0,0,0.12); border-color: #4f46e5;
+            }
+            .mcpg-sortable-item.mcpg-sortable-disabled {
+                opacity: 0.5; background: #fafafa;
+            }
+            .mcpg-sortable-placeholder {
+                height: 56px; margin-bottom: 4px; border: 2px dashed #a5b4fc;
+                border-radius: 8px; background: #eef2ff;
+            }
+            .mcpg-drag-handle {
+                color: #9ca3af; flex-shrink: 0; display: flex; align-items: center;
+            }
+            .mcpg-sortable-info { flex: 1; min-width: 0; }
+            .mcpg-sortable-info strong { display: block; font-size: 14px; color: #1d2327; }
+            .mcpg-sortable-desc { font-size: 12px; color: #6b7280; }
+            .mcpg-sortable-badges { display: flex; gap: 6px; flex-shrink: 0; }
         </style>
 
         <div class="mcpg-admin-header">
@@ -574,9 +628,28 @@ class MCPG_Gateway extends WC_Payment_Gateway {
 
             // Initial state
             showTab('general');
+
+            // Sortable cascade order
+            if ($.fn.sortable && $('#mcpg-cascade-sortable').length) {
+                $('#mcpg-cascade-sortable').sortable({
+                    handle: '.mcpg-drag-handle',
+                    placeholder: 'mcpg-sortable-placeholder',
+                    axis: 'y',
+                    tolerance: 'pointer',
+                    update: function() {
+                        var order = [];
+                        $('#mcpg-cascade-sortable .mcpg-sortable-item').each(function() {
+                            order.push($(this).data('id'));
+                        });
+                        $('#<?php echo esc_js( $this->get_field_key( 'cascade_order' ) ); ?>').val(order.join(','));
+                    }
+                });
+            }
         })(jQuery);
         </script>
         <?php
+        // Enqueue jQuery UI Sortable
+        wp_enqueue_script( 'jquery-ui-sortable' );
     }
 
     /* ═══════════════════ CHECKOUT CARD FORM ═══════════════════ */
@@ -612,6 +685,20 @@ class MCPG_Gateway extends WC_Payment_Gateway {
         <?php
     }
 
+    private static function luhn_check( $number ) {
+        $sum = 0;
+        $len = strlen( $number );
+        for ( $i = 0; $i < $len; $i++ ) {
+            $digit = (int) $number[ $len - 1 - $i ];
+            if ( $i % 2 === 1 ) {
+                $digit *= 2;
+                if ( $digit > 9 ) $digit -= 9;
+            }
+            $sum += $digit;
+        }
+        return $sum % 10 === 0;
+    }
+
     public function validate_fields() {
         $errors = array();
 
@@ -624,6 +711,8 @@ class MCPG_Gateway extends WC_Payment_Gateway {
             $errors[] = 'Cardholder name is required.';
         }
         if ( empty( $number ) || strlen( $number ) < 13 || strlen( $number ) > 19 ) {
+            $errors[] = 'Please enter a valid card number.';
+        } elseif ( ! self::luhn_check( $number ) ) {
             $errors[] = 'Please enter a valid card number.';
         }
         if ( strlen( $expiry ) !== 4 ) {

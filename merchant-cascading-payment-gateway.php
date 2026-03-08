@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Merchant Cascading Payment Gateway for WooCommerce
  * Description: Cascading payment orchestration across multiple processors (V-Processor 2D, E-Processor 2D, V-Processor 3D) with real-time customer-facing progress UI.
- * Version: 1.1.0
+ * Version: 2.0.0
  * Author: Salman Khan
  * Author URI: https://zask.it
  * Text Domain: merchant-cascading-gateway
@@ -15,7 +15,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'MCPG_VERSION', '1.1.0' );
+define( 'MCPG_VERSION', '2.0.0' );
 define( 'MCPG_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MCPG_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'MCPG_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
