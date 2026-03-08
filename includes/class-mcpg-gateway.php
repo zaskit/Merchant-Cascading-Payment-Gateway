@@ -48,6 +48,16 @@ class MCPG_Gateway extends WC_Payment_Gateway {
         // Percentage fee
         add_action( 'woocommerce_cart_calculate_fees', array( $this, 'add_percentage_fee' ) );
         add_action( 'wp_footer', array( $this, 'checkout_refresh_script' ) );
+
+        // Admin scripts (jQuery UI Sortable for cascade order)
+        add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
+    }
+
+    public function enqueue_admin_assets( $hook ) {
+        // Only on WooCommerce settings page
+        if ( $hook !== 'woocommerce_page_wc-settings' ) return;
+        if ( ! isset( $_GET['section'] ) || $_GET['section'] !== 'mcpg_cascading' ) return;
+        wp_enqueue_script( 'jquery-ui-sortable' );
     }
 
     public function get_icon() {
@@ -148,7 +158,7 @@ class MCPG_Gateway extends WC_Payment_Gateway {
             'vp2d_heading' => array(
                 'title'       => '<span class="mcpg-section-title">V-Processor 2D (VP2D)</span>',
                 'type'        => 'title',
-                'description' => 'Direct card processing via vSafe — no 3DS redirect. Fastest checkout experience.',
+                'description' => '',
             ),
             'vp2d_enabled' => array(
                 'title'   => 'Enable',
@@ -188,7 +198,7 @@ class MCPG_Gateway extends WC_Payment_Gateway {
             'ep2d_heading' => array(
                 'title'       => '<span class="mcpg-section-title">E-Processor 2D (EP2D)</span>',
                 'type'        => 'title',
-                'description' => 'Direct card processing via EuPaymentz — no 3DS redirect.',
+                'description' => '',
             ),
             'ep2d_enabled' => array(
                 'title'   => 'Enable',
@@ -248,9 +258,8 @@ class MCPG_Gateway extends WC_Payment_Gateway {
             'vp3d_heading' => array(
                 'title'       => '<span class="mcpg-section-title">V-Processor 3D (VP3D)</span>',
                 'type'        => 'title',
-                'description' => '3D-Secure card processing via vSafe. Customer may be redirected to their bank for verification.<br><br>'
-                    . '<strong>Webhook URL</strong> (set in vSafe dashboard):<br><code>' . esc_html( home_url( '/wc-api/mcpg_vsafe_webhook' ) ) . '</code><br>'
-                    . '<strong>3DS Return URL</strong> (set in vSafe dashboard):<br><code>' . esc_html( home_url( '/wc-api/mcpg_vsafe_3ds_return' ) ) . '</code>',
+                'description' => '<strong>Webhook URL</strong> (set in vSafe dashboard): <code>' . esc_html( home_url( '/wc-api/mcpg_vsafe_webhook' ) ) . '</code><br>'
+                    . '<strong>3DS Return URL</strong> (set in vSafe dashboard): <code>' . esc_html( home_url( '/wc-api/mcpg_vsafe_3ds_return' ) ) . '</code>',
             ),
             'vp3d_enabled' => array(
                 'title'   => 'Enable',
@@ -600,14 +609,16 @@ class MCPG_Gateway extends WC_Payment_Gateway {
             // Initial state
             showTab('general');
 
-            // Sortable cascade order
+        })(jQuery);
+
+        // Sortable init — runs after jQuery UI Sortable has loaded
+        jQuery(function($) {
             if ($.fn.sortable && $('#mcpg-cascade-sortable').length) {
                 $('#mcpg-cascade-sortable').sortable({
                     handle: '.mcpg-drag-handle',
                     placeholder: 'mcpg-sortable-placeholder',
                     axis: 'y',
                     tolerance: 'pointer',
-                    containment: 'parent',
                     update: function() {
                         var order = [];
                         $('#mcpg-cascade-sortable .mcpg-sortable-item').each(function() {
@@ -615,17 +626,13 @@ class MCPG_Gateway extends WC_Payment_Gateway {
                         });
                         var $input = $('#<?php echo esc_js( $this->get_field_key( 'cascade_order' ) ); ?>');
                         $input.val(order.join(','));
-                        // Trigger change so WC detects the update and enables save button
                         $input.trigger('change');
-                        $(document).trigger('woocommerce-enhanced-select-change');
                     }
                 });
             }
-        })(jQuery);
+        });
         </script>
         <?php
-        // Enqueue jQuery UI Sortable
-        wp_enqueue_script( 'jquery-ui-sortable' );
     }
 
     /* ═══════════════════ CHECKOUT CARD FORM ═══════════════════ */
