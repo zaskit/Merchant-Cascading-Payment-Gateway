@@ -248,7 +248,9 @@ class MCPG_Gateway extends WC_Payment_Gateway {
             'vp3d_heading' => array(
                 'title'       => '<span class="mcpg-section-title">V-Processor 3D (VP3D)</span>',
                 'type'        => 'title',
-                'description' => '3D-Secure card processing via vSafe. Customer may be redirected to their bank for verification. Highest approval rates for supported cards.',
+                'description' => '3D-Secure card processing via vSafe. Customer may be redirected to their bank for verification.<br><br>'
+                    . '<strong>Webhook URL</strong> (set in vSafe dashboard):<br><code>' . esc_html( home_url( '/wc-api/mcpg_vsafe_webhook' ) ) . '</code><br>'
+                    . '<strong>3DS Return URL</strong> (set in vSafe dashboard):<br><code>' . esc_html( home_url( '/wc-api/mcpg_vsafe_3ds_return' ) ) . '</code>',
             ),
             'vp3d_enabled' => array(
                 'title'   => 'Enable',
@@ -295,14 +297,6 @@ class MCPG_Gateway extends WC_Payment_Gateway {
                 'desc_tip'    => true,
             ),
 
-            // VP3D URLs (display only — always shows current site URL)
-            'vp3d_urls_heading' => array(
-                'title'       => '<span class="mcpg-section-title" style="font-size:13px;">VP3D Webhook & Return URLs</span>',
-                'type'        => 'title',
-                'description' => 'Copy these URLs into your vSafe merchant dashboard:<br><br>'
-                    . '<strong>Webhook URL:</strong><br><code>' . esc_html( home_url( '/wc-api/mcpg_vsafe_webhook' ) ) . '</code><br><br>'
-                    . '<strong>3DS Return URL:</strong><br><code>' . esc_html( home_url( '/wc-api/mcpg_vsafe_3ds_return' ) ) . '</code>',
-            ),
 
         );
 
@@ -613,12 +607,17 @@ class MCPG_Gateway extends WC_Payment_Gateway {
                     placeholder: 'mcpg-sortable-placeholder',
                     axis: 'y',
                     tolerance: 'pointer',
+                    containment: 'parent',
                     update: function() {
                         var order = [];
                         $('#mcpg-cascade-sortable .mcpg-sortable-item').each(function() {
                             order.push($(this).data('id'));
                         });
-                        $('#<?php echo esc_js( $this->get_field_key( 'cascade_order' ) ); ?>').val(order.join(','));
+                        var $input = $('#<?php echo esc_js( $this->get_field_key( 'cascade_order' ) ); ?>');
+                        $input.val(order.join(','));
+                        // Trigger change so WC detects the update and enables save button
+                        $input.trigger('change');
+                        $(document).trigger('woocommerce-enhanced-select-change');
                     }
                 });
             }
@@ -1073,6 +1072,7 @@ class MCPG_Gateway extends WC_Payment_Gateway {
     }
 
     public function show_descriptor_email( $order, $sent_to_admin, $plain_text, $email ) {
+        if ( $sent_to_admin ) return; // Descriptor is customer-facing only
         if ( $order->get_payment_method() !== $this->id ) return;
         $descriptor = $this->get_order_descriptor( $order );
         if ( empty( $descriptor ) ) return;
