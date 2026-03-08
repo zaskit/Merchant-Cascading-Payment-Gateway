@@ -203,6 +203,14 @@ class MCPG_Gateway extends WC_Payment_Gateway {
                 'type'    => 'text',
                 'default' => 'MCPG-',
             ),
+            'ep2d_environment' => array(
+                'title'   => 'Environment',
+                'type'    => 'select',
+                'options' => array( 'sandbox' => 'Sandbox', 'live' => 'Live' ),
+                'default' => 'sandbox',
+                'description' => 'EP2D sandbox/live is controlled on the provider\'s side. This toggle controls test card substitution.',
+                'desc_tip'    => true,
+            ),
             'ep2d_descriptor' => array(
                 'title'       => 'Statement Descriptor',
                 'type'        => 'text',
@@ -499,19 +507,21 @@ class MCPG_Gateway extends WC_Payment_Gateway {
         // If order already completed (e.g. page refresh after success), skip
         if ( $order->has_status( array( 'processing', 'completed' ) ) ) return;
 
-        $processors  = $order->get_meta( '_mcpg_cascade_processors' ) ?: array();
-        $total_steps = count( $processors );
+        $processors   = $order->get_meta( '_mcpg_cascade_processors' ) ?: array();
+        $total_steps  = count( $processors );
+        $current_step = (int) $order->get_meta( '_mcpg_cascade_step' );
 
         wp_enqueue_script( 'mcpg-cascade', MCPG_PLUGIN_URL . 'assets/js/mcpg-cascade.js', array( 'jquery' ), MCPG_VERSION, true );
         wp_localize_script( 'mcpg-cascade', 'mcpg_cascade', array(
-            'ajax_url'    => admin_url( 'admin-ajax.php' ),
-            'nonce'       => wp_create_nonce( 'mcpg_cascade_nonce' ),
-            'order_id'    => $order_id,
-            'order_key'   => $order->get_order_key(),
-            'total_steps' => $total_steps,
-            'thankyou_url' => remove_query_arg( 'mcpg_cascade', $this->get_return_url( $order ) ),
-            'checkout_url' => wc_get_checkout_url(),
-            'step_delay'  => 1500, // ms between steps for UX
+            'ajax_url'      => admin_url( 'admin-ajax.php' ),
+            'nonce'         => wp_create_nonce( 'mcpg_cascade_nonce' ),
+            'order_id'      => $order_id,
+            'order_key'     => $order->get_order_key(),
+            'total_steps'   => $total_steps,
+            'current_step'  => $current_step,
+            'thankyou_url'  => remove_query_arg( 'mcpg_cascade', $this->get_return_url( $order ) ),
+            'checkout_url'  => wc_get_checkout_url(),
+            'step_delay'    => 1500, // ms between steps for UX
         ));
 
         wp_enqueue_style( 'mcpg-cascade-css', MCPG_PLUGIN_URL . 'assets/css/mcpg-cascade.css', array(), MCPG_VERSION );

@@ -15,7 +15,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'MCPG_VERSION', '1.0.0' );
+define( 'MCPG_VERSION', '1.0.2' );
 define( 'MCPG_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MCPG_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'MCPG_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -53,6 +53,11 @@ function mcpg_init() {
         $gateways[] = 'MCPG_Gateway';
         return $gateways;
     });
+
+    // Register AJAX handlers directly (gateway may not be instantiated during AJAX)
+    if ( wp_doing_ajax() ) {
+        $gateway = new MCPG_Gateway();
+    }
 
     // Initialize webhook handler
     MCPG_Webhook_Handler::init();

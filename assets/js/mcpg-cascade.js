@@ -21,9 +21,15 @@
             document.head.appendChild(style);
         }
 
+        // If resuming after 3DS return, mark prior steps as failed
+        var startStep = parseInt(config.current_step, 10) || 0;
+        for (var i = 0; i < startStep; i++) {
+            setStepFailed(i, 'Declined');
+        }
+
         // Start cascade after a brief delay
         setTimeout(function () {
-            processStep(0);
+            processStep(startStep);
         }, 800);
     }
 
@@ -137,10 +143,22 @@
                 order_key: config.order_key
             },
             success: function (response) {
-                if (response && response.data && response.data.status === 'approved') {
+                if (!response || !response.data) {
+                    setTimeout(function () { pollPending(step, attempts + 1); }, 3000);
+                    return;
+                }
+                var data = response.data;
+                if (data.status === 'approved') {
                     setStepSuccess(step, 'Approved');
                     updateProgress(totalSteps, totalSteps);
-                    showSuccess(response.data.redirect_url);
+                    showSuccess(data.redirect_url);
+                } else if (data.status === '3ds_redirect') {
+                    setStepStatus(step, 'Verifying with your bank...', 'mcpg-step-active');
+                    setMessage('You will be redirected to your bank for verification...');
+                    isFinished = true;
+                    setTimeout(function () {
+                        window.location.href = data.redirect_url;
+                    }, 1500);
                 } else {
                     setTimeout(function () {
                         pollPending(step, attempts + 1);

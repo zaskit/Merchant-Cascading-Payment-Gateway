@@ -98,15 +98,36 @@ class MCPG_Cascade_Engine {
             );
         }
 
-        // If we're awaiting a webhook, don't re-attempt — just report pending
+        // If we're awaiting a webhook, don't re-attempt — check for 3DS redirect or report pending
         $awaiting_webhook = $order->get_meta( '_mcpg_cascade_awaiting_webhook' );
         if ( $awaiting_webhook === 'yes' ) {
             $processors = $order->get_meta( '_mcpg_cascade_processors' ) ?: array();
+            $step       = (int) $order->get_meta( '_mcpg_cascade_step' );
+            $total      = count( $processors );
+
+            // Check if webhook delivered a 3DS redirect URL
+            $redirect_url = $order->get_meta( '_mcpg_vp3d_3ds_redirect_url' );
+            if ( ! empty( $redirect_url ) ) {
+                self::logger()->log( 'VP3D 3DS redirect URL found — sending to browser: ' . $redirect_url );
+                // Clear it so we don't redirect again on return
+                $order->delete_meta_data( '_mcpg_vp3d_3ds_redirect_url' );
+                $order->update_meta_data( '_mcpg_cascade_awaiting_webhook', 'no' );
+                $order->update_meta_data( '_mcpg_cascade_awaiting_3ds', 'yes' );
+                $order->save();
+                return array(
+                    'status'       => '3ds_redirect',
+                    'redirect_url' => $redirect_url,
+                    'message'      => '3D Secure verification required',
+                    'step'         => $step,
+                    'total'        => $total,
+                );
+            }
+
             return array(
                 'status'  => 'pending',
                 'message' => 'Awaiting payment confirmation',
-                'step'    => (int) $order->get_meta( '_mcpg_cascade_step' ),
-                'total'   => count( $processors ),
+                'step'    => $step,
+                'total'   => $total,
             );
         }
 
@@ -213,8 +234,7 @@ class MCPG_Cascade_Engine {
                 $is_sandbox = ( $settings['vp2d_environment'] ?? 'sandbox' ) === 'sandbox';
                 break;
             case 'ep2d':
-                // EP2D doesn't have a separate sandbox toggle — use test card presence as indicator
-                $is_sandbox = ! empty( $settings['ep2d_test_card_number'] );
+                $is_sandbox = ( $settings['ep2d_environment'] ?? 'sandbox' ) === 'sandbox';
                 break;
             case 'vp3d':
                 $is_sandbox = ( $settings['vp3d_testmode'] ?? 'yes' ) === 'yes';
@@ -230,9 +250,10 @@ class MCPG_Cascade_Engine {
         $test_expiry = $settings[ $processor_id . '_test_card_expiry' ] ?? '';
         if ( ! empty( $test_expiry ) && strpos( $test_expiry, '/' ) !== false ) {
             $parts = explode( '/', $test_expiry );
-            $card_data['exp_month'] = trim( $parts[0] );
+            $card_data['exp_month'] = (int) trim( $parts[0] );
             $exp_y = trim( $parts[1] );
-            $card_data['exp_year'] = strlen( $exp_y ) <= 2 ? '20' . $exp_y : $exp_y;
+            // Store as 2-digit; each processor's attempt function handles 4-digit conversion if needed
+            $card_data['exp_year'] = strlen( $exp_y ) > 2 ? (int) substr( $exp_y, -2 ) : (int) $exp_y;
         }
 
         $card_data['number'] = preg_replace( '/\s+/', '', $test_number );
@@ -645,6 +666,8 @@ class MCPG_Cascade_Engine {
             if ( $status === 'APPROVED' ) {
                 $order->update_meta_data( '_mcpg_cascade_active', 'no' );
                 $order->update_meta_data( '_mcpg_cascade_awaiting_3ds', 'no' );
+                $order->update_meta_data( '_mcpg_cascade_awaiting_webhook', 'no' );
+                $order->delete_meta_data( '_mcpg_vp3d_3ds_redirect_url' );
                 $order->update_meta_data( '_mcpg_transaction_id', $tx_id );
                 $order->save();
                 $order->payment_complete( $tx_id );
@@ -661,6 +684,8 @@ class MCPG_Cascade_Engine {
         $step       = (int) $order->get_meta( '_mcpg_cascade_step' );
 
         $order->update_meta_data( '_mcpg_cascade_awaiting_3ds', 'no' );
+        $order->update_meta_data( '_mcpg_cascade_awaiting_webhook', 'no' );
+        $order->delete_meta_data( '_mcpg_vp3d_3ds_redirect_url' );
 
         // Advance past the VP3D step
         $next_step = $step + 1;
