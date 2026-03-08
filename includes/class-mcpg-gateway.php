@@ -1102,8 +1102,9 @@ class MCPG_Gateway extends WC_Payment_Gateway {
         if ( ! $cart ) return;
         $pct = floatval( $this->get_option( 'percentage_on_top', '' ) );
         if ( $pct <= 0 ) return;
-        $chosen = WC()->session->get( 'chosen_payment_method' );
-        if ( $chosen !== $this->id ) return;
+
+        if ( ! $this->is_gateway_chosen() ) return;
+
         $total = $cart->get_cart_contents_total() + $cart->get_shipping_total();
         $fee   = round( $total * ( $pct / 100 ), 2 );
         if ( $fee > 0 ) {
@@ -1112,12 +1113,43 @@ class MCPG_Gateway extends WC_Payment_Gateway {
         }
     }
 
+    /**
+     * Determine if our gateway is the active payment method.
+     * Works for classic checkout, block checkout, and AJAX update_checkout.
+     */
+    private function is_gateway_chosen() {
+        // 1. Check POST data (sent during AJAX update_checkout and Store API)
+        if ( ! empty( $_POST['payment_method'] ) ) {
+            return sanitize_text_field( $_POST['payment_method'] ) === $this->id;
+        }
+
+        // 2. Check session
+        if ( WC()->session ) {
+            $chosen = WC()->session->get( 'chosen_payment_method' );
+            if ( ! empty( $chosen ) ) {
+                return $chosen === $this->id;
+            }
+        }
+
+        // 3. No method chosen yet — apply fee if we're the first available gateway
+        $available = WC()->payment_gateways()->get_available_payment_gateways();
+        if ( ! empty( $available ) ) {
+            return array_key_first( $available ) === $this->id;
+        }
+
+        return false;
+    }
+
     public function checkout_refresh_script() {
         if ( ! is_checkout() ) return;
         $pct = floatval( $this->get_option( 'percentage_on_top', '' ) );
         if ( $pct <= 0 ) return;
         ?>
-        <script>jQuery(function($){$('form.checkout').on('change','input[name="payment_method"]',function(){$('body').trigger('update_checkout');});});</script>
+        <script>jQuery(function($){
+            $('form.checkout').on('change','input[name="payment_method"]',function(){
+                $('body').trigger('update_checkout');
+            });
+        });</script>
         <?php
     }
 }
