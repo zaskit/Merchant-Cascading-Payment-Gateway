@@ -41,9 +41,8 @@ class MCPG_Gateway extends WC_Payment_Gateway {
         // Block checkout bridge
         add_action( 'woocommerce_rest_checkout_process_payment_with_context', array( $this, 'process_payment_for_block' ), 10, 2 );
 
-        // Descriptor on thank-you page and emails
+        // Descriptor on thank-you page
         add_action( 'woocommerce_thankyou_' . $this->id, array( $this, 'show_descriptor_thankyou' ), 5 );
-        add_action( 'woocommerce_email_after_order_table', array( $this, 'show_descriptor_email' ), 10, 4 );
 
         // Checkout refresh for fee recalculation when payment method changes
         add_action( 'wp_footer', array( $this, 'checkout_refresh_script' ) );

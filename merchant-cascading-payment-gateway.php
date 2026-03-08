@@ -64,6 +64,9 @@ function mcpg_init() {
 
     // Percentage fee — registered here so it fires even before the gateway object is loaded
     add_action( 'woocommerce_cart_calculate_fees', 'mcpg_add_percentage_fee' );
+
+    // Descriptor in customer emails — registered here so it fires regardless of gateway instantiation
+    add_action( 'woocommerce_email_after_order_table', 'mcpg_show_descriptor_email', 10, 4 );
 }
 
 function mcpg_add_percentage_fee( $cart ) {
@@ -99,6 +102,29 @@ function mcpg_add_percentage_fee( $cart ) {
     if ( $fee > 0 ) {
         $label = $settings['fee_label'] ?? 'Transaction Fee';
         $cart->add_fee( sprintf( '%s (%s%%)', $label, $pct ), $fee, true );
+    }
+}
+
+function mcpg_show_descriptor_email( $order, $sent_to_admin, $plain_text, $email ) {
+    if ( $sent_to_admin ) return;
+    if ( $order->get_payment_method() !== 'mcpg_cascading' ) return;
+
+    $settings   = get_option( 'woocommerce_mcpg_cascading_settings', array() );
+    $processor  = $order->get_meta( '_mcpg_payment_processor' );
+    $descriptor = $processor ? ( $settings[ $processor . '_descriptor' ] ?? '' ) : '';
+    if ( empty( $descriptor ) ) return;
+
+    $msg = sprintf(
+        'Your payment has been processed securely. The charge will appear on your statement as "%s". If you have any questions, please contact our support team.',
+        esc_html( $descriptor )
+    );
+
+    if ( $plain_text ) {
+        echo "\n" . wp_strip_all_tags( $msg ) . "\n\n";
+    } else {
+        echo '<div style="background:#f0f7ff;border-left:4px solid #6366f1;padding:14px 18px;margin:16px 0;font-size:15px;line-height:1.6;color:#1d2327;">';
+        echo wp_kses_post( $msg );
+        echo '</div>';
     }
 }
 
