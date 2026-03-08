@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Merchant Cascading Payment Gateway for WooCommerce
  * Description: Cascading payment orchestration across multiple processors (V-Processor 2D, E-Processor 2D, V-Processor 3D) with real-time customer-facing progress UI.
- * Version: 1.0.0
+ * Version: 1.1.0
  * Author: Salman Khan
  * Author URI: https://zask.it
  * Text Domain: merchant-cascading-gateway
@@ -15,7 +15,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'MCPG_VERSION', '1.0.2' );
+define( 'MCPG_VERSION', '1.1.0' );
 define( 'MCPG_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MCPG_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'MCPG_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -97,9 +97,19 @@ add_action( 'woocommerce_api_vsafe_3ds_return', array( 'MCPG_Webhook_Handler', '
 /* ── Activation / Deactivation ── */
 register_activation_hook( __FILE__, function () {
     flush_rewrite_rules();
+    set_transient( 'mcpg_activation_redirect', true, 30 );
 });
 register_deactivation_hook( __FILE__, function () {
     flush_rewrite_rules();
+});
+
+/* ── Redirect to settings on activation ── */
+add_action( 'admin_init', function () {
+    if ( ! get_transient( 'mcpg_activation_redirect' ) ) return;
+    delete_transient( 'mcpg_activation_redirect' );
+    if ( wp_doing_ajax() || is_network_admin() || isset( $_GET['activate-multi'] ) ) return;
+    wp_safe_redirect( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=mcpg_cascading' ) );
+    exit;
 });
 
 /* ── Settings link ── */

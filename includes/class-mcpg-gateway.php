@@ -28,7 +28,7 @@ class MCPG_Gateway extends WC_Payment_Gateway {
         // Save settings
         add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
 
-        // Frontend assets
+        // Checkout assets
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_checkout_assets' ) );
 
         // Cascade overlay on thank-you page
@@ -61,10 +61,17 @@ class MCPG_Gateway extends WC_Payment_Gateway {
     /* ═══════════════════ ADMIN SETTINGS ═══════════════════ */
     public function init_form_fields() {
         $this->form_fields = array(
-            // ── General ──
-            'general_section' => array(
-                'title' => '<span style="font-size:16px;font-weight:700;">General Settings</span>',
+
+            /* ── TAB: General ── */
+            'tab_general_start' => array(
+                'type' => 'title',
+                'title' => '',
+                'class' => 'mcpg-tab-content mcpg-tab-general',
+            ),
+            'general_heading' => array(
+                'title' => '<span class="mcpg-section-title">General Settings</span>',
                 'type'  => 'title',
+                'description' => 'Basic gateway configuration — enable the gateway, set what customers see at checkout, and configure debug logging.',
             ),
             'enabled' => array(
                 'title'   => 'Enable Gateway',
@@ -83,265 +90,40 @@ class MCPG_Gateway extends WC_Payment_Gateway {
                 'title'   => 'Checkout Description',
                 'type'    => 'textarea',
                 'default' => 'Pay securely with your Visa or Mastercard.',
+                'description' => 'Description shown below the title at checkout.',
+                'desc_tip' => true,
             ),
             'debug' => array(
                 'title'   => 'Debug Log',
                 'type'    => 'checkbox',
-                'label'   => 'Enable logging (WooCommerce > Status > Logs > mcpg-*)',
+                'label'   => 'Enable logging',
                 'default' => 'yes',
+                'description' => 'Log events to <strong>WooCommerce &gt; Status &gt; Logs</strong> (filenames starting with <code>mcpg-</code>). Disable in production for performance.',
             ),
-            // ── Cascade ──
-            'cascade_section' => array(
-                'title'       => '<span style="font-size:16px;font-weight:700;">Cascade Configuration</span>',
+
+            // Cascade config
+            'cascade_heading' => array(
+                'title'       => '<span class="mcpg-section-title">Cascade Configuration</span>',
                 'type'        => 'title',
-                'description' => 'Configure the order in which payment processors are tried. Each enabled processor is attempted in sequence until one succeeds.',
+                'description' => 'Define the order in which processors are attempted. Each enabled processor is tried in sequence until one approves the payment.',
             ),
             'cascade_order' => array(
                 'title'       => 'Cascade Order',
                 'type'        => 'text',
-                'description' => 'Comma-separated processor IDs in attempt order. Available: <code>vp2d</code>, <code>ep2d</code>, <code>vp3d</code>',
+                'description' => 'Comma-separated processor IDs in attempt order.<br>Available: <code>vp2d</code> (V-Processor 2D), <code>ep2d</code> (E-Processor 2D), <code>vp3d</code> (V-Processor 3D)',
                 'default'     => 'vp2d,ep2d,vp3d',
-                'desc_tip'    => false,
             ),
 
-            // ── V-Processor 2D ──
-            'vp2d_section' => array(
-                'title'       => '<span style="font-size:16px;font-weight:700;">V-Processor 2D</span>',
-                'type'        => 'title',
-                'description' => 'Direct card processing via vSafe (no 3DS redirect).',
-            ),
-            'vp2d_enabled' => array(
-                'title'   => 'Enable',
-                'type'    => 'checkbox',
-                'label'   => 'Include V-Processor 2D in cascade',
-                'default' => 'yes',
-            ),
-            'vp2d_merchant_id' => array(
-                'title' => 'Merchant ID',
-                'type'  => 'text',
-            ),
-            'vp2d_api_key' => array(
-                'title' => 'API Token',
-                'type'  => 'password',
-            ),
-            'vp2d_environment' => array(
-                'title'   => 'Environment',
-                'type'    => 'select',
-                'options' => array( 'sandbox' => 'Sandbox', 'live' => 'Live' ),
-                'default' => 'sandbox',
-            ),
-            'vp2d_descriptor' => array(
-                'title'       => 'Statement Descriptor',
-                'type'        => 'text',
-                'description' => 'Text shown on bank statement when paid via VP2D.',
-                'default'     => '',
-                'desc_tip'    => true,
-            ),
-            'vp2d_test_card_section' => array(
-                'title'       => '<em style="font-size:13px;font-weight:600;color:#6b7280;">VP2D Sandbox Test Card</em>',
-                'type'        => 'title',
-                'description' => 'When environment is Sandbox, these card details are sent to the API instead of the customer\'s card.',
-            ),
-            'vp2d_test_card_number' => array(
-                'title'   => 'Test Card Number',
-                'type'    => 'text',
-                'default' => '',
-                'description' => 'Leave empty to use customer\'s card even in sandbox.',
-                'desc_tip' => true,
-            ),
-            'vp2d_test_card_expiry' => array(
-                'title'       => 'Test Card Expiry (MM/YY)',
-                'type'        => 'text',
-                'default'     => '',
-                'css'         => 'width:100px;',
-            ),
-            'vp2d_test_card_cvv' => array(
-                'title'   => 'Test Card CVV',
-                'type'    => 'text',
-                'default' => '',
-                'css'     => 'width:80px;',
-            ),
-            'vp2d_test_card_name' => array(
-                'title'   => 'Test Cardholder Name',
-                'type'    => 'text',
-                'default' => '',
-            ),
-
-            // ── E-Processor 2D ──
-            'ep2d_section' => array(
-                'title'       => '<span style="font-size:16px;font-weight:700;">E-Processor 2D</span>',
-                'type'        => 'title',
-                'description' => 'Direct card processing via EuPaymentz (no 3DS redirect).',
-            ),
-            'ep2d_enabled' => array(
-                'title'   => 'Enable',
-                'type'    => 'checkbox',
-                'label'   => 'Include E-Processor 2D in cascade',
-                'default' => 'yes',
-            ),
-            'ep2d_account_id' => array(
-                'title' => 'Account ID',
-                'type'  => 'text',
-            ),
-            'ep2d_account_password' => array(
-                'title' => 'Account Password',
-                'type'  => 'password',
-            ),
-            'ep2d_account_passphrase' => array(
-                'title'       => 'Account Passphrase',
-                'type'        => 'password',
-                'description' => 'For SHA256 hash verification.',
-                'desc_tip'    => true,
-            ),
-            'ep2d_account_gateway' => array(
-                'title'   => 'Gateway Account',
-                'type'    => 'text',
-                'default' => '1',
-            ),
-            'ep2d_transaction_prefix' => array(
-                'title'   => 'Transaction Prefix',
-                'type'    => 'text',
-                'default' => 'MCPG-',
-            ),
-            'ep2d_environment' => array(
-                'title'   => 'Environment',
-                'type'    => 'select',
-                'options' => array( 'sandbox' => 'Sandbox', 'live' => 'Live' ),
-                'default' => 'sandbox',
-                'description' => 'EP2D sandbox/live is controlled on the provider\'s side. This toggle controls test card substitution.',
-                'desc_tip'    => true,
-            ),
-            'ep2d_descriptor' => array(
-                'title'       => 'Statement Descriptor',
-                'type'        => 'text',
-                'description' => 'Text shown on bank statement when paid via EP2D.',
-                'default'     => '',
-                'desc_tip'    => true,
-            ),
-            'ep2d_test_card_section' => array(
-                'title'       => '<em style="font-size:13px;font-weight:600;color:#6b7280;">EP2D Sandbox Test Card</em>',
-                'type'        => 'title',
-                'description' => 'When in test mode, these card details are sent to the API instead of the customer\'s card.',
-            ),
-            'ep2d_test_card_number' => array(
-                'title'   => 'Test Card Number',
-                'type'    => 'text',
-                'default' => '',
-                'description' => 'Leave empty to use customer\'s card even in sandbox.',
-                'desc_tip' => true,
-            ),
-            'ep2d_test_card_expiry' => array(
-                'title'       => 'Test Card Expiry (MM/YY)',
-                'type'        => 'text',
-                'default'     => '',
-                'css'         => 'width:100px;',
-            ),
-            'ep2d_test_card_cvv' => array(
-                'title'   => 'Test Card CVV',
-                'type'    => 'text',
-                'default' => '',
-                'css'     => 'width:80px;',
-            ),
-            'ep2d_test_card_name' => array(
-                'title'   => 'Test Cardholder Name',
-                'type'    => 'text',
-                'default' => '',
-            ),
-
-            // ── V-Processor 3D ──
-            'vp3d_section' => array(
-                'title'       => '<span style="font-size:16px;font-weight:700;">V-Processor 3D</span>',
-                'type'        => 'title',
-                'description' => '3D-Secure card processing via vSafe. Customer may be redirected for bank verification.',
-            ),
-            'vp3d_enabled' => array(
-                'title'   => 'Enable',
-                'type'    => 'checkbox',
-                'label'   => 'Include V-Processor 3D in cascade',
-                'default' => 'yes',
-            ),
-            'vp3d_testmode' => array(
-                'title'   => 'Sandbox Mode',
-                'type'    => 'checkbox',
-                'label'   => 'Enable Sandbox',
-                'default' => 'yes',
-            ),
-            'vp3d_test_merchant_id' => array(
-                'title' => 'Sandbox Merchant ID',
-                'type'  => 'text',
-            ),
-            'vp3d_test_api_token' => array(
-                'title' => 'Sandbox API Token',
-                'type'  => 'password',
-            ),
-            'vp3d_live_merchant_id' => array(
-                'title' => 'Live Merchant ID',
-                'type'  => 'text',
-            ),
-            'vp3d_live_api_token' => array(
-                'title' => 'Live API Token',
-                'type'  => 'password',
-            ),
-            'vp3d_webhook_url' => array(
-                'title'       => 'Webhook URL',
-                'type'        => 'text',
-                'description' => 'Copy to your vSafe dashboard: <code>' . home_url( '/wc-api/vsafe_webhook' ) . '</code>',
-                'default'     => home_url( '/wc-api/vsafe_webhook' ),
-                'custom_attributes' => array( 'readonly' => 'readonly' ),
-            ),
-            'vp3d_redirect_url' => array(
-                'title'       => '3DS Return URL',
-                'type'        => 'text',
-                'description' => 'URL customer returns to after 3DS: <code>' . home_url( '/wc-api/vsafe_3ds_return' ) . '</code>',
-                'default'     => home_url( '/wc-api/vsafe_3ds_return' ),
-                'custom_attributes' => array( 'readonly' => 'readonly' ),
-            ),
-            'vp3d_descriptor' => array(
-                'title'       => 'Statement Descriptor',
-                'type'        => 'text',
-                'description' => 'Text shown on bank statement when paid via VP3D.',
-                'default'     => '',
-                'desc_tip'    => true,
-            ),
-            'vp3d_test_card_section' => array(
-                'title'       => '<em style="font-size:13px;font-weight:600;color:#6b7280;">VP3D Sandbox Test Card</em>',
-                'type'        => 'title',
-                'description' => 'When in sandbox mode, these card details are sent to the API instead of the customer\'s card.',
-            ),
-            'vp3d_test_card_number' => array(
-                'title'   => 'Test Card Number',
-                'type'    => 'text',
-                'default' => '',
-                'description' => 'Leave empty to use customer\'s card even in sandbox.',
-                'desc_tip' => true,
-            ),
-            'vp3d_test_card_expiry' => array(
-                'title'       => 'Test Card Expiry (MM/YY)',
-                'type'        => 'text',
-                'default'     => '',
-                'css'         => 'width:100px;',
-            ),
-            'vp3d_test_card_cvv' => array(
-                'title'   => 'Test Card CVV',
-                'type'    => 'text',
-                'default' => '',
-                'css'     => 'width:80px;',
-            ),
-            'vp3d_test_card_name' => array(
-                'title'   => 'Test Cardholder Name',
-                'type'    => 'text',
-                'default' => '',
-            ),
-
-            // ── Fee ──
-            'fee_section' => array(
-                'title' => '<span style="font-size:16px;font-weight:700;">Fees</span>',
+            // Fees
+            'fee_heading' => array(
+                'title' => '<span class="mcpg-section-title">Checkout Fees</span>',
                 'type'  => 'title',
+                'description' => 'Add a percentage fee to the order total when this gateway is selected.',
             ),
             'percentage_on_top' => array(
                 'title'       => 'Percentage Fee (%)',
                 'type'        => 'number',
-                'description' => 'Additional percentage fee at checkout. Leave empty for none.',
+                'description' => 'Additional percentage fee added at checkout. Leave empty or 0 for no fee.',
                 'default'     => '',
                 'desc_tip'    => true,
                 'css'         => 'width:100px;',
@@ -351,28 +133,449 @@ class MCPG_Gateway extends WC_Payment_Gateway {
                 'title'   => 'Fee Label',
                 'type'    => 'text',
                 'default' => 'Transaction Fee',
+                'description' => 'Label shown on the checkout page for the fee line item.',
+                'desc_tip' => true,
+            ),
+
+            /* ── TAB: Processors ── */
+            'tab_processors_start' => array(
+                'type' => 'title',
+                'title' => '',
+                'class' => 'mcpg-tab-content mcpg-tab-processors',
+            ),
+
+            // VP2D
+            'vp2d_heading' => array(
+                'title'       => '<span class="mcpg-section-title">V-Processor 2D (VP2D)</span>',
+                'type'        => 'title',
+                'description' => 'Direct card processing via vSafe — no 3DS redirect. Fastest checkout experience.',
+            ),
+            'vp2d_enabled' => array(
+                'title'   => 'Enable',
+                'type'    => 'checkbox',
+                'label'   => 'Include in cascade',
+                'default' => 'yes',
+            ),
+            'vp2d_environment' => array(
+                'title'   => 'Environment',
+                'type'    => 'select',
+                'options' => array( 'sandbox' => 'Sandbox (Testing)', 'live' => 'Live (Production)' ),
+                'default' => 'sandbox',
+                'description' => 'Switch to Live when you are ready to accept real payments.',
+                'desc_tip' => true,
+            ),
+            'vp2d_merchant_id' => array(
+                'title' => 'Merchant ID',
+                'type'  => 'text',
+                'description' => 'Your vSafe merchant ID for 2D processing.',
+                'desc_tip' => true,
+            ),
+            'vp2d_api_key' => array(
+                'title' => 'API Token',
+                'type'  => 'password',
+                'description' => 'Your vSafe API token (used for request signing).',
+                'desc_tip' => true,
+            ),
+            'vp2d_descriptor' => array(
+                'title'       => 'Statement Descriptor',
+                'type'        => 'text',
+                'description' => 'Text that appears on the customer\'s bank/card statement.',
+                'default'     => '',
+                'desc_tip'    => true,
+            ),
+
+            // EP2D
+            'ep2d_heading' => array(
+                'title'       => '<span class="mcpg-section-title">E-Processor 2D (EP2D)</span>',
+                'type'        => 'title',
+                'description' => 'Direct card processing via EuPaymentz — no 3DS redirect.',
+            ),
+            'ep2d_enabled' => array(
+                'title'   => 'Enable',
+                'type'    => 'checkbox',
+                'label'   => 'Include in cascade',
+                'default' => 'yes',
+            ),
+            'ep2d_environment' => array(
+                'title'   => 'Environment',
+                'type'    => 'select',
+                'options' => array( 'sandbox' => 'Sandbox (Testing)', 'live' => 'Live (Production)' ),
+                'default' => 'sandbox',
+                'description' => 'Sandbox/live mode is controlled on the provider\'s side. This toggle controls test card substitution only.',
+                'desc_tip'    => true,
+            ),
+            'ep2d_account_id' => array(
+                'title' => 'Account ID',
+                'type'  => 'text',
+                'description' => 'Your EuPaymentz account ID.',
+                'desc_tip' => true,
+            ),
+            'ep2d_account_password' => array(
+                'title' => 'Account Password',
+                'type'  => 'password',
+                'description' => 'Your EuPaymentz account password.',
+                'desc_tip' => true,
+            ),
+            'ep2d_account_passphrase' => array(
+                'title'       => 'SHA Passphrase',
+                'type'        => 'password',
+                'description' => 'Used for SHA256 hash verification of responses.',
+                'desc_tip'    => true,
+            ),
+            'ep2d_account_gateway' => array(
+                'title'   => 'Gateway Account',
+                'type'    => 'text',
+                'default' => '1',
+                'description' => 'Gateway account number (usually "1").',
+                'desc_tip' => true,
+            ),
+            'ep2d_transaction_prefix' => array(
+                'title'   => 'Transaction Prefix',
+                'type'    => 'text',
+                'default' => 'MCPG-',
+                'description' => 'Prefix added to transaction IDs sent to the processor.',
+                'desc_tip' => true,
+            ),
+            'ep2d_descriptor' => array(
+                'title'       => 'Statement Descriptor',
+                'type'        => 'text',
+                'description' => 'Text that appears on the customer\'s bank/card statement.',
+                'default'     => '',
+                'desc_tip'    => true,
+            ),
+
+            // VP3D
+            'vp3d_heading' => array(
+                'title'       => '<span class="mcpg-section-title">V-Processor 3D (VP3D)</span>',
+                'type'        => 'title',
+                'description' => '3D-Secure card processing via vSafe. Customer may be redirected to their bank for verification. Highest approval rates for supported cards.',
+            ),
+            'vp3d_enabled' => array(
+                'title'   => 'Enable',
+                'type'    => 'checkbox',
+                'label'   => 'Include in cascade',
+                'default' => 'yes',
+            ),
+            'vp3d_testmode' => array(
+                'title'   => 'Environment',
+                'type'    => 'checkbox',
+                'label'   => 'Enable Sandbox (Testing) mode',
+                'default' => 'yes',
+                'description' => 'When checked, uses sandbox credentials. Uncheck for live/production.',
+            ),
+            'vp3d_test_merchant_id' => array(
+                'title' => 'Sandbox Merchant ID',
+                'type'  => 'text',
+                'description' => 'Merchant ID for the sandbox environment.',
+                'desc_tip' => true,
+            ),
+            'vp3d_test_api_token' => array(
+                'title' => 'Sandbox API Token',
+                'type'  => 'password',
+                'description' => 'API token for the sandbox environment.',
+                'desc_tip' => true,
+            ),
+            'vp3d_live_merchant_id' => array(
+                'title' => 'Live Merchant ID',
+                'type'  => 'text',
+                'description' => 'Merchant ID for live/production.',
+                'desc_tip' => true,
+            ),
+            'vp3d_live_api_token' => array(
+                'title' => 'Live API Token',
+                'type'  => 'password',
+                'description' => 'API token for live/production.',
+                'desc_tip' => true,
+            ),
+            'vp3d_descriptor' => array(
+                'title'       => 'Statement Descriptor',
+                'type'        => 'text',
+                'description' => 'Text that appears on the customer\'s bank/card statement.',
+                'default'     => '',
+                'desc_tip'    => true,
+            ),
+
+            // VP3D URLs (readonly, for reference)
+            'vp3d_urls_heading' => array(
+                'title'       => '<span class="mcpg-section-title" style="font-size:13px;">VP3D Webhook & Return URLs</span>',
+                'type'        => 'title',
+                'description' => 'Copy these URLs into your vSafe merchant dashboard.',
+            ),
+            'vp3d_webhook_url' => array(
+                'title'       => 'Webhook URL',
+                'type'        => 'text',
+                'default'     => home_url( '/wc-api/vsafe_webhook' ),
+                'description' => '<code>' . home_url( '/wc-api/vsafe_webhook' ) . '</code>',
+                'custom_attributes' => array( 'readonly' => 'readonly' ),
+                'css' => 'color:#666;background:#f6f7f7;',
+            ),
+            'vp3d_redirect_url' => array(
+                'title'       => '3DS Return URL',
+                'type'        => 'text',
+                'default'     => home_url( '/wc-api/vsafe_3ds_return' ),
+                'description' => '<code>' . home_url( '/wc-api/vsafe_3ds_return' ) . '</code>',
+                'custom_attributes' => array( 'readonly' => 'readonly' ),
+                'css' => 'color:#666;background:#f6f7f7;',
+            ),
+
+            /* ── TAB: Test Cards ── */
+            'tab_testcards_start' => array(
+                'type' => 'title',
+                'title' => '',
+                'class' => 'mcpg-tab-content mcpg-tab-testcards',
+            ),
+            'testcards_info' => array(
+                'title' => '<span class="mcpg-section-title">Sandbox Test Cards</span>',
+                'type'  => 'title',
+                'description' => 'When a processor is in <strong>Sandbox</strong> mode and a test card is configured below, the customer\'s real card details are replaced with these test card details before sending to the processor API.<br><br>Leave fields empty to send the customer\'s actual card even in sandbox mode.',
+            ),
+
+            // VP2D test card
+            'vp2d_tc_heading' => array(
+                'title' => '<span class="mcpg-section-title" style="font-size:14px;">VP2D Test Card</span>',
+                'type'  => 'title',
+            ),
+            'vp2d_test_card_number' => array(
+                'title'   => 'Card Number',
+                'type'    => 'text',
+                'default' => '',
+                'css'     => 'width:220px;',
+            ),
+            'vp2d_test_card_expiry' => array(
+                'title'       => 'Expiry (MM/YY)',
+                'type'        => 'text',
+                'default'     => '',
+                'css'         => 'width:100px;',
+            ),
+            'vp2d_test_card_cvv' => array(
+                'title'   => 'CVV',
+                'type'    => 'text',
+                'default' => '',
+                'css'     => 'width:80px;',
+            ),
+            'vp2d_test_card_name' => array(
+                'title'   => 'Cardholder Name',
+                'type'    => 'text',
+                'default' => '',
+                'css'     => 'width:220px;',
+            ),
+
+            // EP2D test card
+            'ep2d_tc_heading' => array(
+                'title' => '<span class="mcpg-section-title" style="font-size:14px;">EP2D Test Card</span>',
+                'type'  => 'title',
+                'description' => 'Common EuPaymentz test cards: <code>4444333322221111</code> (Accepted), <code>4444333322221210</code> (3DS Accepted), <code>4444333322222101</code> (Refused). Expiry: <code>06/25</code>, CVV: <code>123</code>',
+            ),
+            'ep2d_test_card_number' => array(
+                'title'   => 'Card Number',
+                'type'    => 'text',
+                'default' => '',
+                'css'     => 'width:220px;',
+            ),
+            'ep2d_test_card_expiry' => array(
+                'title'       => 'Expiry (MM/YY)',
+                'type'        => 'text',
+                'default'     => '',
+                'css'         => 'width:100px;',
+            ),
+            'ep2d_test_card_cvv' => array(
+                'title'   => 'CVV',
+                'type'    => 'text',
+                'default' => '',
+                'css'     => 'width:80px;',
+            ),
+            'ep2d_test_card_name' => array(
+                'title'   => 'Cardholder Name',
+                'type'    => 'text',
+                'default' => '',
+                'css'     => 'width:220px;',
+            ),
+
+            // VP3D test card
+            'vp3d_tc_heading' => array(
+                'title' => '<span class="mcpg-section-title" style="font-size:14px;">VP3D Test Card</span>',
+                'type'  => 'title',
+            ),
+            'vp3d_test_card_number' => array(
+                'title'   => 'Card Number',
+                'type'    => 'text',
+                'default' => '',
+                'css'     => 'width:220px;',
+            ),
+            'vp3d_test_card_expiry' => array(
+                'title'       => 'Expiry (MM/YY)',
+                'type'        => 'text',
+                'default'     => '',
+                'css'         => 'width:100px;',
+            ),
+            'vp3d_test_card_cvv' => array(
+                'title'   => 'CVV',
+                'type'    => 'text',
+                'default' => '',
+                'css'     => 'width:80px;',
+            ),
+            'vp3d_test_card_name' => array(
+                'title'   => 'Cardholder Name',
+                'type'    => 'text',
+                'default' => '',
+                'css'     => 'width:220px;',
             ),
         );
     }
 
     /**
-     * Custom admin options page with a styled layout.
+     * Custom admin options page with tabbed layout.
      */
     public function admin_options() {
+        $tabs = array(
+            'general'    => 'General',
+            'processors' => 'Processors',
+            'testcards'  => 'Test Cards',
+        );
         ?>
         <style>
-            .mcpg-admin-header { background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; padding: 24px 28px; border-radius: 10px; margin-bottom: 24px; }
+            .mcpg-admin-header {
+                background: linear-gradient(135deg, #4f46e5, #7c3aed);
+                color: #fff; padding: 24px 28px; border-radius: 10px; margin-bottom: 0;
+            }
             .mcpg-admin-header h2 { margin: 0 0 6px; font-size: 22px; font-weight: 700; color: #fff; }
             .mcpg-admin-header p { margin: 0; opacity: 0.85; font-size: 14px; }
-            .mcpg-admin-header .mcpg-version { display: inline-block; background: rgba(255,255,255,0.2); padding: 2px 10px; border-radius: 12px; font-size: 12px; margin-left: 8px; }
+            .mcpg-admin-header .mcpg-version {
+                display: inline-block; background: rgba(255,255,255,0.2);
+                padding: 2px 10px; border-radius: 12px; font-size: 12px; margin-left: 8px;
+            }
+            /* Tabs */
+            .mcpg-tabs {
+                display: flex; gap: 0; background: #f0f0f1; border-radius: 0 0 10px 10px;
+                padding: 0 12px; margin-bottom: 24px; border-top: 1px solid rgba(255,255,255,0.15);
+            }
+            .mcpg-tab {
+                padding: 12px 22px; cursor: pointer; font-size: 14px; font-weight: 500;
+                color: #50575e; border-bottom: 3px solid transparent; transition: all 0.2s;
+                user-select: none;
+            }
+            .mcpg-tab:hover { color: #1d2327; background: rgba(0,0,0,0.03); }
+            .mcpg-tab.active {
+                color: #4f46e5; border-bottom-color: #4f46e5; font-weight: 600;
+                background: rgba(79,70,229,0.05);
+            }
+            /* Tab content visibility */
+            .mcpg-settings-wrap .form-table { display: none; }
+            .mcpg-settings-wrap .form-table.mcpg-visible { display: table; }
+            /* Section titles */
+            .mcpg-section-title { font-size: 16px; font-weight: 700; color: #1d2327; }
+            /* Status badges in processor tab */
+            .mcpg-env-badge {
+                display: inline-block; padding: 2px 8px; border-radius: 4px;
+                font-size: 11px; font-weight: 600; text-transform: uppercase; margin-left: 6px;
+            }
+            .mcpg-env-sandbox { background: #fef3c7; color: #92400e; }
+            .mcpg-env-live { background: #d1fae5; color: #065f46; }
         </style>
+
         <div class="mcpg-admin-header">
             <h2>Cascading Payment Gateway <span class="mcpg-version">v<?php echo esc_html( MCPG_VERSION ); ?></span></h2>
             <p>Automatically routes payments through multiple processors for maximum approval rates.</p>
         </div>
-        <table class="form-table">
-            <?php $this->generate_settings_html(); ?>
-        </table>
+
+        <div class="mcpg-tabs">
+            <?php foreach ( $tabs as $key => $label ) : ?>
+                <div class="mcpg-tab<?php echo $key === 'general' ? ' active' : ''; ?>" data-tab="<?php echo esc_attr( $key ); ?>">
+                    <?php echo esc_html( $label ); ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <div class="mcpg-settings-wrap">
+            <?php
+            // We need to render settings grouped by tab.
+            // WC generates one <table> per title field. We'll render all and use JS to show/hide.
+            $this->generate_settings_html();
+            ?>
+        </div>
+
+        <script>
+        (function($) {
+            var fields = <?php echo wp_json_encode( array_keys( $this->form_fields ) ); ?>;
+            var tabMap = {};
+            var currentTab = 'general';
+
+            // Build a map of which field belongs to which tab
+            fields.forEach(function(key) {
+                if (key === 'tab_general_start') currentTab = 'general';
+                else if (key === 'tab_processors_start') currentTab = 'processors';
+                else if (key === 'tab_testcards_start') currentTab = 'testcards';
+                tabMap[key] = currentTab;
+            });
+
+            function showTab(tab) {
+                // Find all table rows and their parent tables
+                var $wrap = $('.mcpg-settings-wrap');
+                // Hide all rows first
+                $wrap.find('tr').hide();
+                $wrap.find('h2, p.description, table.form-table').hide();
+
+                // Show rows belonging to this tab
+                var showing = false;
+                var $allRows = $wrap.find('tr[valign="top"], tr:not([valign])');
+
+                // WC renders each field as a <tr> with id="woocommerce_mcpg_cascading_FIELDKEY"
+                // Title fields render as </table><h2>...<table>
+                // We need to traverse DOM sequentially
+                var $elements = $wrap.children();
+                var inTab = false;
+
+                $elements.each(function() {
+                    var $el = $(this);
+
+                    if ($el.is('table')) {
+                        // Check the first row's field ID to determine tab
+                        var $rows = $el.find('tr');
+                        var tabForTable = null;
+
+                        $rows.each(function() {
+                            var id = $(this).find('[id^="woocommerce_mcpg_cascading_"]').attr('id');
+                            if (id) {
+                                var fieldKey = id.replace('woocommerce_mcpg_cascading_', '');
+                                if (tabMap[fieldKey]) {
+                                    tabForTable = tabMap[fieldKey];
+                                    return false;
+                                }
+                            }
+                        });
+
+                        if (tabForTable === tab) {
+                            $el.show().addClass('mcpg-visible');
+                            $el.find('tr').show();
+                            inTab = true;
+                        } else {
+                            $el.hide().removeClass('mcpg-visible');
+                            inTab = false;
+                        }
+                    } else if ($el.is('h2') || $el.is('p')) {
+                        if (inTab) $el.show();
+                    }
+                });
+
+                // Update active tab
+                $('.mcpg-tab').removeClass('active');
+                $('.mcpg-tab[data-tab="' + tab + '"]').addClass('active');
+
+                // Hide tab marker rows (they have no visible content)
+                $wrap.find('tr').filter(function() {
+                    return $(this).find('td, th').length === 0;
+                }).hide();
+            }
+
+            // Tab click handler
+            $('.mcpg-tab').on('click', function() {
+                showTab($(this).data('tab'));
+            });
+
+            // Initial state
+            showTab('general');
+        })(jQuery);
+        </script>
         <?php
     }
 
@@ -778,9 +981,6 @@ class MCPG_Gateway extends WC_Payment_Gateway {
     }
 
     /* ═══════════════════ DESCRIPTOR ═══════════════════ */
-    /**
-     * Get the descriptor for the processor that handled this order.
-     */
     private function get_order_descriptor( $order ) {
         $processor = $order->get_meta( '_mcpg_payment_processor' );
         if ( $processor ) {
@@ -791,7 +991,6 @@ class MCPG_Gateway extends WC_Payment_Gateway {
     }
 
     public function show_descriptor_thankyou( $order_id ) {
-        // Don't show descriptor during cascade processing
         if ( isset( $_GET['mcpg_cascade'] ) ) return;
 
         $order = wc_get_order( $order_id );
