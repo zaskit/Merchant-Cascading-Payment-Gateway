@@ -564,7 +564,7 @@ class MCPG_Cascade_Engine {
             'cardDetails' => array(
                 'cardHolderName'  => $card_data['name'],
                 'cardNumber'      => $card_data['number'],
-                'cvv'             => (int) $card_data['cvv'],
+                'cvv'             => $card_data['cvv'],
                 'expirationMonth' => sprintf( '%02d', $card_data['exp_month'] ),
                 'expirationYear'  => (int) $card_data['exp_year'],
             ),
