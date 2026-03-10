@@ -31,11 +31,23 @@ class MCPG_Blocks_Integration extends AbstractPaymentMethodType {
     }
 
     public function get_payment_method_data() {
+        $countries = array();
+        if ( function_exists( 'WC' ) && WC()->countries ) {
+            foreach ( WC()->countries->get_countries() as $code => $name ) {
+                $countries[] = array( 'code' => $code, 'name' => $name );
+            }
+        }
+        $default_country = '';
+        if ( function_exists( 'WC' ) && WC()->customer ) {
+            $default_country = WC()->customer->get_billing_country();
+        }
         return array(
-            'title'       => $this->settings['title'] ?? 'Credit / Debit Card',
-            'description' => $this->settings['description'] ?? '',
-            'supports'    => array( 'products', 'refunds' ),
-            'icon'        => '',
+            'title'           => $this->settings['title'] ?? 'Credit / Debit Card',
+            'description'     => $this->settings['description'] ?? '',
+            'supports'        => array( 'products', 'refunds' ),
+            'icon'            => '',
+            'countries'       => $countries,
+            'defaultCountry'  => $default_country,
         );
     }
 }

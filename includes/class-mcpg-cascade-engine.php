@@ -12,6 +12,27 @@ class MCPG_Cascade_Engine {
 
     private static $logger;
 
+    private static function format_phone( $phone ) {
+        $phone  = trim( $phone );
+        $prefix = strpos( $phone, '+' ) === 0 ? '+' : '';
+        return $prefix . preg_replace( '/\D/', '', $phone );
+    }
+
+    private static function get_cardholder_billing( $order ) {
+        $billing = $order->get_meta( '_mcpg_cardholder_billing' );
+        if ( is_array( $billing ) && ! empty( $billing['street'] ) ) {
+            return $billing;
+        }
+        // Fallback to WooCommerce billing address
+        return array(
+            'street'  => trim( $order->get_billing_address_1() . ' ' . $order->get_billing_address_2() ),
+            'city'    => $order->get_billing_city(),
+            'state'   => $order->get_billing_state() ?: 'NA',
+            'country' => $order->get_billing_country(),
+            'zipCode' => substr( $order->get_billing_postcode(), 0, 9 ),
+        );
+    }
+
     private static function logger() {
         if ( ! self::$logger ) {
             $settings = get_option( 'woocommerce_mcpg_cascading_settings', array() );
@@ -331,14 +352,8 @@ class MCPG_Cascade_Engine {
                 'firstName' => $order->get_billing_first_name(),
                 'lastName'  => $order->get_billing_last_name(),
                 'email'     => $order->get_billing_email(),
-                'phone'     => preg_replace( '/\D/', '', $order->get_billing_phone() ),
-                'address'   => array(
-                    'street'  => trim( $order->get_billing_address_1() . ' ' . $order->get_billing_address_2() ),
-                    'city'    => $order->get_billing_city(),
-                    'state'   => $order->get_billing_state(),
-                    'country' => $order->get_billing_country(),
-                    'zipCode' => substr( $order->get_billing_postcode(), 0, 9 ),
-                ),
+                'phone'     => self::format_phone( $order->get_billing_phone() ),
+                'address'   => self::get_cardholder_billing( $order ),
             ),
         );
 
@@ -412,6 +427,8 @@ class MCPG_Cascade_Engine {
         $exp_year  = (string) $card_data['exp_year'];
         if ( strlen( $exp_year ) <= 2 ) $exp_year = '20' . str_pad( $exp_year, 2, '0', STR_PAD_LEFT );
 
+        $ch_billing = self::get_cardholder_billing( $order );
+
         $data = array(
             'account_id'              => $account_id,
             'account_password'        => $account_password,
@@ -421,12 +438,12 @@ class MCPG_Cascade_Engine {
             'cust_email'              => $order->get_billing_email(),
             'cust_billing_last_name'  => $order->get_billing_last_name(),
             'cust_billing_first_name' => $order->get_billing_first_name(),
-            'cust_billing_address'    => trim( $order->get_billing_address_1() . ' ' . $order->get_billing_address_2() ),
-            'cust_billing_city'       => $order->get_billing_city(),
-            'cust_billing_zipcode'    => $order->get_billing_postcode(),
-            'cust_billing_state'      => $order->get_billing_state() ?: 'NA',
-            'cust_billing_country'    => $order->get_billing_country(),
-            'cust_billing_phone'      => preg_replace( '/\D/', '', $order->get_billing_phone() ),
+            'cust_billing_address'    => $ch_billing['street'],
+            'cust_billing_city'       => $ch_billing['city'],
+            'cust_billing_zipcode'    => $ch_billing['zipCode'],
+            'cust_billing_state'      => $ch_billing['state'],
+            'cust_billing_country'    => $ch_billing['country'],
+            'cust_billing_phone'      => self::format_phone( $order->get_billing_phone() ),
             'transac_products_name'   => MCPG_EProcessor_API::get_order_items_string( $order ),
             'transac_amount'          => $amount,
             'transac_currency_code'   => $order->get_currency(),
@@ -450,7 +467,7 @@ class MCPG_Cascade_Engine {
             $data['cust_shipping_zipcode']    = $order->get_shipping_postcode();
             $data['cust_shipping_state']      = $order->get_shipping_state() ?: 'NA';
             $data['cust_shipping_country']    = $order->get_shipping_country();
-            $data['cust_shipping_phone']      = preg_replace( '/\D/', '', $order->get_billing_phone() );
+            $data['cust_shipping_phone']      = self::format_phone( $order->get_billing_phone() );
         }
 
         // SHA with card
@@ -557,8 +574,8 @@ class MCPG_Cascade_Engine {
         $body = array(
             'serviceSecurity' => array( 'merchantId' => (int) $merchant_id ),
             'transactionDetails' => array(
-                'amount'            => (float) $order->get_total(),
-                'currency'          => $order->get_currency(),
+                'amount'            => number_format( (float) $order->get_total(), 2, '.', '' ),
+                'currency'          => strtoupper( $order->get_currency() ),
                 'externalReference' => $attempt_ref,
             ),
             'cardDetails' => array(
@@ -569,17 +586,12 @@ class MCPG_Cascade_Engine {
                 'expirationYear'  => (int) $card_data['exp_year'],
             ),
             'payerDetails' => array(
+                'username'  => sanitize_user( $order->get_billing_email(), true ),
                 'firstName' => $order->get_billing_first_name(),
                 'lastName'  => $order->get_billing_last_name(),
                 'email'     => $order->get_billing_email(),
-                'phone'     => preg_replace( '/\D/', '', $order->get_billing_phone() ),
-                'address'   => array(
-                    'street'  => $order->get_billing_address_1(),
-                    'city'    => $order->get_billing_city(),
-                    'state'   => $order->get_billing_state(),
-                    'country' => $order->get_billing_country(),
-                    'zipCode' => $order->get_billing_postcode(),
-                ),
+                'phone'     => self::format_phone( $order->get_billing_phone() ),
+                'address'   => self::get_cardholder_billing( $order ),
             ),
         );
 

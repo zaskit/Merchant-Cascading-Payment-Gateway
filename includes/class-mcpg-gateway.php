@@ -658,6 +658,36 @@ class MCPG_Gateway extends WC_Payment_Gateway {
                     <input type="text" name="mcpg_cvv" inputmode="numeric" autocomplete="cc-csc" placeholder="&bull;&bull;&bull;" maxlength="4" required />
                 </div>
             </div>
+            <div class="mcpg-billing-heading">Cardholder Billing Address</div>
+            <div class="mcpg-field">
+                <label>Street Address <span class="required">*</span></label>
+                <input type="text" name="mcpg_billing_street" autocomplete="address-line1" placeholder="Street address" required />
+            </div>
+            <div class="mcpg-row">
+                <div class="mcpg-field">
+                    <label>City <span class="required">*</span></label>
+                    <input type="text" name="mcpg_billing_city" autocomplete="address-level2" placeholder="City" required />
+                </div>
+                <div class="mcpg-field">
+                    <label>State / Province <span class="required">*</span></label>
+                    <input type="text" name="mcpg_billing_state" autocomplete="address-level1" placeholder="e.g. MO, NY" maxlength="50" required />
+                </div>
+            </div>
+            <div class="mcpg-row">
+                <div class="mcpg-field">
+                    <label>Country <span class="required">*</span></label>
+                    <select name="mcpg_billing_country" autocomplete="country" required>
+                        <option value="">Select country&hellip;</option>
+                        <?php foreach ( WC()->countries->get_countries() as $code => $name ) : ?>
+                            <option value="<?php echo esc_attr( $code ); ?>"<?php selected( WC()->customer ? WC()->customer->get_billing_country() : '', $code ); ?>><?php echo esc_html( $name ); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="mcpg-field">
+                    <label>ZIP / Postal Code <span class="required">*</span></label>
+                    <input type="text" name="mcpg_billing_zip" autocomplete="postal-code" placeholder="ZIP / Postal" maxlength="10" required />
+                </div>
+            </div>
             <div class="mcpg-secure-badge">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                 <span>Secured with 256-bit encryption &mdash; your card details are never stored</span>
@@ -700,12 +730,44 @@ class MCPG_Gateway extends WC_Payment_Gateway {
             $errors[] = 'Please enter a valid expiry date (MM/YY).';
         } else {
             $month = (int) substr( $expiry, 0, 2 );
+            $year  = (int) substr( $expiry, 2, 2 );
             if ( $month < 1 || $month > 12 ) {
                 $errors[] = 'Please enter a valid expiry month (01-12).';
+            } else {
+                $now_month = (int) gmdate( 'n' );
+                $now_year  = (int) gmdate( 'y' );
+                if ( $year < $now_year || ( $year === $now_year && $month < $now_month ) ) {
+                    $errors[] = 'Your card has expired. Please use a valid card.';
+                }
             }
         }
         if ( empty( $cvv ) || strlen( $cvv ) < 3 || strlen( $cvv ) > 4 ) {
             $errors[] = 'Please enter a valid CVC.';
+        }
+
+        // Cardholder billing address validation
+        $billing_street  = sanitize_text_field( $_POST['mcpg_billing_street'] ?? '' );
+        $billing_city    = sanitize_text_field( $_POST['mcpg_billing_city'] ?? '' );
+        $billing_state   = sanitize_text_field( $_POST['mcpg_billing_state'] ?? '' );
+        $billing_country = sanitize_text_field( $_POST['mcpg_billing_country'] ?? '' );
+        $billing_zip     = sanitize_text_field( $_POST['mcpg_billing_zip'] ?? '' );
+
+        if ( empty( $billing_street ) ) {
+            $errors[] = 'Cardholder billing street address is required.';
+        }
+        if ( empty( $billing_city ) ) {
+            $errors[] = 'Cardholder billing city is required.';
+        }
+        if ( empty( $billing_state ) ) {
+            $errors[] = 'Cardholder billing state / province is required.';
+        }
+        if ( empty( $billing_country ) ) {
+            $errors[] = 'Cardholder billing country is required.';
+        } elseif ( strlen( $billing_country ) !== 2 ) {
+            $errors[] = 'Please select a valid billing country.';
+        }
+        if ( empty( $billing_zip ) ) {
+            $errors[] = 'Cardholder billing ZIP / postal code is required.';
         }
 
         foreach ( $errors as $err ) {
@@ -736,6 +798,17 @@ class MCPG_Gateway extends WC_Payment_Gateway {
         );
 
         $this->logger->log( 'Card (masked): ' . substr( $card_number, 0, 6 ) . '****' . substr( $card_number, -4 ) );
+
+        // Store cardholder billing address as order meta
+        $billing_state_raw = sanitize_text_field( $_POST['mcpg_billing_state'] ?? '' );
+        $order->update_meta_data( '_mcpg_cardholder_billing', array(
+            'street'  => sanitize_text_field( $_POST['mcpg_billing_street'] ?? '' ),
+            'city'    => sanitize_text_field( $_POST['mcpg_billing_city'] ?? '' ),
+            'state'   => ! empty( $billing_state_raw ) ? strtoupper( substr( $billing_state_raw, 0, 2 ) ) : 'NA',
+            'country' => sanitize_text_field( $_POST['mcpg_billing_country'] ?? '' ),
+            'zipCode' => sanitize_text_field( $_POST['mcpg_billing_zip'] ?? '' ),
+        ) );
+        $order->save();
 
         // Store encrypted card data for cascade
         if ( ! MCPG_Card_Store::store( $order_id, $card_data ) ) {
@@ -1038,10 +1111,15 @@ class MCPG_Gateway extends WC_Payment_Gateway {
         if ( $context->payment_method !== $this->id ) return;
         $pd = isset( $context->payment_data ) ? $context->payment_data : array();
         $map = array(
-            'mcpg_card_name'   => 'mcpg_card_name',
-            'mcpg_card_number' => 'mcpg_card_number',
-            'mcpg_expiry'      => 'mcpg_expiry',
-            'mcpg_cvv'         => 'mcpg_cvv',
+            'mcpg_card_name'       => 'mcpg_card_name',
+            'mcpg_card_number'     => 'mcpg_card_number',
+            'mcpg_expiry'          => 'mcpg_expiry',
+            'mcpg_cvv'             => 'mcpg_cvv',
+            'mcpg_billing_street'  => 'mcpg_billing_street',
+            'mcpg_billing_city'    => 'mcpg_billing_city',
+            'mcpg_billing_state'   => 'mcpg_billing_state',
+            'mcpg_billing_country' => 'mcpg_billing_country',
+            'mcpg_billing_zip'     => 'mcpg_billing_zip',
         );
         foreach ( $map as $k => $v ) {
             if ( isset( $pd[ $k ] ) ) {

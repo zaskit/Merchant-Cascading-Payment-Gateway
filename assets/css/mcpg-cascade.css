@@ -60,6 +60,41 @@
     margin-bottom: 0;
 }
 
+.mcpg-billing-heading {
+    font-size: 14px;
+    font-weight: 700;
+    color: #374151;
+    margin: 18px 0 12px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+    letter-spacing: -0.01em;
+}
+
+.mcpg-card-form .mcpg-field select {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 15px;
+    line-height: 1.4;
+    color: #111827;
+    background: #fff;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    box-sizing: border-box;
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236b7280' d='M1.41.59l4.59 4.58 4.59-4.58L12 2l-6 6-6-6z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+}
+
+.mcpg-card-form .mcpg-field select:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
 .mcpg-secure-badge {
     display: flex;
     align-items: center;

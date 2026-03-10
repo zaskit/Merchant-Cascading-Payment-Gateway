@@ -15,7 +15,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'MCPG_VERSION', '2.0.0' );
+define( 'MCPG_VERSION', '2.1.0' );
 define( 'MCPG_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MCPG_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'MCPG_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
